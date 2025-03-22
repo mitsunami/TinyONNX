@@ -4,13 +4,6 @@
 #include "tensor.h"
 #include <fstream>
 
-/*
->>> print("Top 5 predictions (indices):", top5.indices.numpy())
-Top 5 predictions (indices): [[644 904 446 549 971]]
->>> print("Top 5 predictions (scores):", top5.values.detach().numpy())
-Top 5 predictions (scores): [[6.4933834 6.2849607 6.1947975 6.137249  5.4067903]]
-*/
-
 Tensor loadNumpyInput(const std::string& filename) {
     std::ifstream file(filename, std::ios::binary);
     if (!file) {
@@ -43,7 +36,17 @@ int main(int argc, char* argv[]) {
     ExecutionEngine engine;
     engine.executeGraph(graph, input);
 
-    graph.tensors["output"].print();
+    // Show final output tensor (assuming named 'output')
+    if (graph.tensors.count("output")) {
+        graph.tensors["output"].print();
+        std::ofstream fout("tinyonnx_output.txt");
+        for (float val : graph.tensors["output"].data()) {
+            fout << val << "\n";
+        }
+        fout.close();
+    } else {
+        std::cerr << "Output tensor not found!" << std::endl;
+    }
 
     std::cout << "ONNX Model execution completed!" << std::endl;
     return 0;

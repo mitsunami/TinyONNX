@@ -105,12 +105,4 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
         }
     }
     
-    // Show final output tensor (assuming named 'output')
-    if (graph.tensors.count("output")) {
-        std::cout << "Final Output Tensor: ";
-        graph.tensors["output"].print();
-    } else {
-        std::cerr << "Output tensor not found!" << std::endl;
-    }
-
 }

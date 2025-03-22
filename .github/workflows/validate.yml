@@ -1,0 +1,31 @@
+name: Validate MobileNet
+
+on: [push, pull_request]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
+
+      - name: Install NumPy
+        run: pip install numpy
+
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build TinyONNX
+        run: cmake --build build -j
+
+      - name: Run TinyONNX on MobileNet
+        run: ./build/TinyONNX test_data/mobilenet_v2.onnx test_data/input_tensor.npy
+
+      - name: Validate Output
+        run: python3 tests/validate_mobilenet.py
