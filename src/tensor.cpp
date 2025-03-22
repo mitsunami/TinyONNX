@@ -2,6 +2,8 @@
 #include <iostream>
 #include <cstdlib>
 
+Tensor::Tensor() {}
+
 Tensor::Tensor(const std::vector<int>& shape) : shape_(shape) {
     size_t total_size = 1;
     for (int dim : shape) total_size *= dim;
