@@ -96,7 +96,12 @@ Tensor Operators::relu(const Tensor& input) {
     return output;
 }
 
-#include <cmath>
+Tensor Operators::clip(const Tensor& input, float min_val, float max_val) {
+    Tensor output(input.shape());
+    for (size_t i = 0; i < input.data().size(); ++i)
+        output.data()[i] = std::max(min_val, std::min(max_val, input.data()[i]));
+    return output;
+}
 
 Tensor Operators::softmax(const Tensor& input) {
     Tensor output(input.shape());

@@ -54,6 +54,16 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
             auto& input_tensor = graph.tensors[node.inputs[0]];
             graph.tensors[node.outputs[0]] = operators_.relu(input_tensor);
         }
+        else if (node.op_type == "Clip") {
+            auto& in = graph.tensors[node.inputs[0]];
+            float min_val = 0.0f; // default
+            float max_val = 6.0f; // default
+            for (const auto& attr : node.attributes) {
+                if (attr.name() == "min") min_val = attr.f();
+                if (attr.name() == "max") max_val = attr.f();
+            }
+            graph.tensors[node.outputs[0]] = operators_.clip(in, min_val, max_val);
+        }
         else if (node.op_type == "Softmax") {
             auto& input_tensor = graph.tensors[node.inputs[0]];
             graph.tensors[node.outputs[0]] = operators_.softmax(input_tensor);
