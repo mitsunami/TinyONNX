@@ -7,6 +7,8 @@ class Operators {
 public:
     Tensor conv2d(const Tensor& input, const Tensor& weights, const Tensor& bias, int stride, int padding);
     Tensor matmul(const Tensor& a, const Tensor& b);
+    Tensor gemm(const Tensor& a, const Tensor& b, const Tensor& c, float alpha, float beta);
+    Tensor gemm_transB(const Tensor& a, const Tensor& b, const Tensor& c, float alpha, float beta);
     Tensor add(const Tensor& a, const Tensor& b);
     Tensor relu(const Tensor& input);
     Tensor clip(const Tensor& input, float min_val, float max_val);

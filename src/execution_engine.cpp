@@ -36,13 +36,23 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
             graph.tensors[node.outputs[0]] = operators_.matmul(a, b);
         }
         else if (node.op_type == "Gemm") {
-            auto& A = graph.tensors[node.inputs[0]];
-            auto& B = graph.tensors[node.inputs[1]];
-            auto& C = graph.tensors[node.inputs[2]]; // Bias
-            Tensor result = operators_.matmul(A, B);        
-            // Add bias
-            for (size_t i = 0; i < result.data().size(); ++i)
-                result.data()[i] += C.data()[i];
+            auto& in = graph.tensors[node.inputs[0]];
+            auto& weights = graph.tensors[node.inputs[1]];
+            auto& bias = graph.tensors[node.inputs[2]];
+            float alpha = 1.0f;
+            float beta = 1.0f;
+            bool transB = false;
+            for (const auto& attr : node.attributes) {
+                if (attr.name() == "alpha") alpha = attr.f();
+                if (attr.name() == "beta") beta = attr.f();
+                if (attr.name() == "transB") transB = (attr.i() != 0);
+            }
+            Tensor result;
+            if (transB) {
+                result = operators_.gemm_transB(in, weights, bias, alpha, beta);
+            } else {
+                result = operators_.gemm(in, weights, bias, alpha, beta);
+            }
             graph.tensors[node.outputs[0]] = result;
         }
         else if (node.op_type == "Add") {

@@ -73,6 +73,50 @@ Tensor Operators::matmul(const Tensor& a, const Tensor& b) {
     return output;
 }
 
+Tensor Operators::gemm(const Tensor& a, const Tensor& b, const Tensor& c, float alpha, float beta) {
+    assert(a.shape().size() == 2 && b.shape().size() == 2);
+    int M = a.shape()[0];
+    int K = a.shape()[1];
+    int N = b.shape()[1];
+    assert(K == b.shape()[0]);
+    assert(c.data().size() == N);
+
+    Tensor result({M, N});
+
+    for (int m = 0; m < M; ++m) {
+        for (int n = 0; n < N; ++n) {
+            float sum = c.data()[n]; // Add bias initially
+            for (int k = 0; k < K; ++k) {
+                sum += a.data()[m * K + k] * b.data()[k * N + n];
+            }
+            result.data()[m * N + n] = sum;
+        }
+    }
+    return result;
+}
+
+Tensor Operators::gemm_transB(const Tensor& a, const Tensor& b, const Tensor& c, float alpha, float beta) {
+    int M = a.shape()[0];
+    int K = a.shape()[1];
+    int N = b.shape()[0];  // B shape is [N, K], so B^T is [K, N]
+
+    assert(K == b.shape()[1]);
+    assert(c.data().size() == N);
+
+    Tensor result({M, N});
+
+    for (int m = 0; m < M; ++m) {
+        for (int n = 0; n < N; ++n) {
+            float sum = 0.0f;
+            for (int k = 0; k < K; ++k) {
+                sum += a.data()[m * K + k] * b.data()[n * K + k];  // B^T
+            }
+            result.data()[m * N + n] = alpha * sum + beta * c.data()[n];
+        }
+    }
+    return result;
+}
+
 Tensor Operators::add(const Tensor& a, const Tensor& b) {
     assert(a.shape() == b.shape()); // Ensure tensors have identical shapes
 
