@@ -1,4 +1,5 @@
 #include "operators.h"
+#include <cmath>
 #include <cassert>
 #include <algorithm>
 
@@ -77,6 +78,37 @@ Tensor Operators::relu(const Tensor& input) {
 
     for (size_t i = 0; i < input.data().size(); ++i) {
         output.data()[i] = std::max(0.0f, input.data()[i]);
+    }
+
+    return output;
+}
+
+Tensor Operators::batchNorm(const Tensor& input, const Tensor& scale, const Tensor& bias, const Tensor& mean, const Tensor& var, float epsilon) {
+    assert(input.shape().size() == 4);  // [batch, channels, height, width]
+
+    Tensor output(input.shape());
+
+    int batch = input.shape()[0];
+    int channels = input.shape()[1];
+    int height = input.shape()[2];
+    int width = input.shape()[3];
+
+    for (int b = 0; b < batch; ++b) {
+        for (int c = 0; c < channels; ++c) {
+            float s = scale.data()[c];
+            float b_ = bias.data()[c];
+            float m = mean.data()[c];
+            float v = var.data()[c];
+
+            float denom = 1.0f / sqrt(v + epsilon);
+
+            for (int h = 0; h < height; ++h) {
+                for (int w = 0; w < width; ++w) {
+                    int idx = ((b * channels + c) * height + h) * width + w;
+                    output.data()[idx] = s * (input.data()[idx] - m) * denom + b_;
+                }
+            }
+        }
     }
 
     return output;

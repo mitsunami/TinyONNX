@@ -30,6 +30,15 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
             Tensor output = operators_.relu(input_tensor);
             graph.tensors[node.outputs[0]] = output;
         }
+        else if (node.op_type == "BatchNormalization") {
+            auto& in = graph.tensors[node.inputs[0]];
+            auto& scale = graph.tensors[node.inputs[1]];
+            auto& bias = graph.tensors[node.inputs[2]];
+            auto& mean = graph.tensors[node.inputs[3]];
+            auto& var = graph.tensors[node.inputs[4]];
+            float epsilon = 1e-5f; // TODO: later parse from attributes clearly
+            graph.tensors[node.outputs[0]] = operators_.batchNorm(in, scale, bias, mean, var, epsilon);
+        }
         else {
             std::cerr << "Operator not supported yet: " << node.op_type << std::endl;
         }

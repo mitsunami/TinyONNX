@@ -56,6 +56,7 @@ add_executable(TinyONNX_tests
     tests/test_conv2d.cpp
     tests/test_matmul.cpp
     tests/test_relu.cpp
+    tests/test_batchnorm.cpp
 )
 
 target_link_libraries(TinyONNX_tests
