@@ -24,6 +24,16 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
             auto& b = graph.tensors[node.inputs[1]];
             graph.tensors[node.outputs[0]] = operators_.matmul(a, b);
         }
+        else if (node.op_type == "Gemm") {
+            auto& A = graph.tensors[node.inputs[0]];
+            auto& B = graph.tensors[node.inputs[1]];
+            auto& C = graph.tensors[node.inputs[2]]; // Bias
+            Tensor result = operators_.matmul(A, B);        
+            // Add bias
+            for (size_t i = 0; i < result.data().size(); ++i)
+                result.data()[i] += C.data()[i];
+            graph.tensors[node.outputs[0]] = result;
+        }
         else if (node.op_type == "Add") {
             auto& a = graph.tensors[node.inputs[0]];
             auto& b = graph.tensors[node.inputs[1]];
