@@ -73,6 +73,19 @@ Tensor Operators::matmul(const Tensor& a, const Tensor& b) {
     return output;
 }
 
+Tensor Operators::add(const Tensor& a, const Tensor& b) {
+    assert(a.shape() == b.shape()); // Ensure tensors have identical shapes
+
+    Tensor output(a.shape());
+
+    size_t total_elements = a.data().size();
+    for (size_t i = 0; i < total_elements; ++i) {
+        output.data()[i] = a.data()[i] + b.data()[i];
+    }
+
+    return output;
+}
+
 Tensor Operators::relu(const Tensor& input) {
     Tensor output(input.shape());
 

@@ -55,6 +55,7 @@ add_executable(TinyONNX_tests
     tests/test_simple_model.cpp
     tests/test_conv2d.cpp
     tests/test_matmul.cpp
+    tests/test_add.cpp
     tests/test_relu.cpp
     tests/test_batchnorm.cpp
 )
