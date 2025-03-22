@@ -96,6 +96,28 @@ Tensor Operators::relu(const Tensor& input) {
     return output;
 }
 
+#include <cmath>
+
+Tensor Operators::softmax(const Tensor& input) {
+    Tensor output(input.shape());
+    size_t total_elements = input.data().size();
+
+    // Find max for numerical stability
+    float max_val = *std::max_element(input.data().begin(), input.data().end());
+
+    float sum_exp = 0.0f;
+    for (size_t i = 0; i < total_elements; ++i) {
+        output.data()[i] = std::exp(input.data()[i] - max_val);
+        sum_exp += output.data()[i];
+    }
+
+    for (size_t i = 0; i < total_elements; ++i) {
+        output.data()[i] /= sum_exp;
+    }
+
+    return output;
+}
+
 Tensor Operators::batchNorm(const Tensor& input, const Tensor& scale, const Tensor& bias, const Tensor& mean, const Tensor& var, float epsilon) {
     assert(input.shape().size() == 4);  // [batch, channels, height, width]
 

@@ -33,6 +33,10 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
             auto& input_tensor = graph.tensors[node.inputs[0]];
             graph.tensors[node.outputs[0]] = operators_.relu(input_tensor);
         }
+        else if (node.op_type == "Softmax") {
+            auto& input_tensor = graph.tensors[node.inputs[0]];
+            graph.tensors[node.outputs[0]] = operators_.softmax(input_tensor);
+        }
         else if (node.op_type == "BatchNormalization") {
             auto& in = graph.tensors[node.inputs[0]];
             auto& scale = graph.tensors[node.inputs[1]];

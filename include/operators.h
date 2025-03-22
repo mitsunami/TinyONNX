@@ -9,6 +9,7 @@ public:
     Tensor matmul(const Tensor& a, const Tensor& b);
     Tensor add(const Tensor& a, const Tensor& b);
     Tensor relu(const Tensor& input);
+    Tensor softmax(const Tensor& input);
     Tensor batchNorm(const Tensor& input, const Tensor& scale, const Tensor& bias, const Tensor& mean, const Tensor& var, float epsilon);
     Tensor globalAveragePool(const Tensor& input);
     Tensor reshape(const Tensor& input, const std::vector<int>& new_shape);
