@@ -1,5 +1,6 @@
 #include "execution_engine.h"
 #include "operators.h"
+#include "onnx_utils.h"
 #include <onnx/onnx_pb.h>
 #include <iostream>
 
@@ -26,9 +27,16 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
             auto& in = graph.tensors[node.inputs[0]];
             auto& weights = graph.tensors[node.inputs[1]];
             auto& bias = graph.tensors[node.inputs[2]];
-            int stride = 1;    // TODO: Retrieve from node attributes later clearly
-            int padding = 1;   // TODO: Retrieve from node attributes later clearly
-            graph.tensors[node.outputs[0]] = operators_.conv2d(in, weights, bias, stride, padding);
+            std::vector<int> strides = getIntListAttr(node, "strides");
+            std::vector<int> pads = getIntListAttr(node, "pads");
+            std::vector<int> dilations = getIntListAttr(node, "dilations");
+            int groups = getIntAttr(node, "group", 1);        
+            if (strides.empty()) strides = {1, 1};
+            if (pads.empty()) pads = {0, 0, 0, 0};  // top, left, bottom, right
+            if (dilations.empty()) dilations = {1, 1};
+            graph.tensors[node.outputs[0]] = operators_.conv2d(
+                in, weights, bias, strides, pads, dilations, groups
+            );
         }
         else if (node.op_type == "MatMul") {
             auto& a = graph.tensors[node.inputs[0]];
@@ -39,14 +47,9 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
             auto& in = graph.tensors[node.inputs[0]];
             auto& weights = graph.tensors[node.inputs[1]];
             auto& bias = graph.tensors[node.inputs[2]];
-            float alpha = 1.0f;
-            float beta = 1.0f;
-            bool transB = false;
-            for (const auto& attr : node.attributes) {
-                if (attr.name() == "alpha") alpha = attr.f();
-                if (attr.name() == "beta") beta = attr.f();
-                if (attr.name() == "transB") transB = (attr.i() != 0);
-            }
+            float alpha = getFloatAttr(node, "alpha", 1.0f);
+            float beta = getFloatAttr(node, "beta", 1.0f);
+            bool transB = getIntAttr(node, "transB", 0);
             Tensor result;
             if (transB) {
                 result = operators_.gemm_transB(in, weights, bias, alpha, beta);
@@ -66,12 +69,8 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
         }
         else if (node.op_type == "Clip") {
             auto& in = graph.tensors[node.inputs[0]];
-            float min_val = 0.0f; // default
-            float max_val = 6.0f; // default
-            for (const auto& attr : node.attributes) {
-                if (attr.name() == "min") min_val = attr.f();
-                if (attr.name() == "max") max_val = attr.f();
-            }
+            float min_val = getFloatAttr(node, "min", 0.0f);
+            float max_val = getFloatAttr(node, "max", 6.0f);
             graph.tensors[node.outputs[0]] = operators_.clip(in, min_val, max_val);
         }
         else if (node.op_type == "Softmax") {

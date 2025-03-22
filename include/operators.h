@@ -5,7 +5,7 @@
 
 class Operators {
 public:
-    Tensor conv2d(const Tensor& input, const Tensor& weights, const Tensor& bias, int stride, int padding);
+    Tensor conv2d(const Tensor& input, const Tensor& weights, const Tensor& bias, const std::vector<int>& strides, const std::vector<int>& pads, const std::vector<int>& dilations, int groups);
     Tensor matmul(const Tensor& a, const Tensor& b);
     Tensor gemm(const Tensor& a, const Tensor& b, const Tensor& c, float alpha, float beta);
     Tensor gemm_transB(const Tensor& a, const Tensor& b, const Tensor& c, float alpha, float beta);
