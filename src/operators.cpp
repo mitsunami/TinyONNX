@@ -204,3 +204,11 @@ Tensor Operators::reshape(const Tensor& input, const std::vector<int>& new_shape
 
     return output;
 }
+
+Tensor Operators::flatten(const Tensor& input) {
+    assert(input.shape().size() >= 2);
+    int batch = input.shape()[0];
+    int features = input.data().size() / batch;
+
+    return reshape(input, {batch, features});
+}

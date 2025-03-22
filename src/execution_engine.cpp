@@ -77,6 +77,10 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
             std::vector<int> new_shape(shape_tensor.data().begin(), shape_tensor.data().end());
             graph.tensors[node.outputs[0]] = operators_.reshape(in, new_shape);
         }
+        else if (node.op_type == "Flatten") {
+            auto& in = graph.tensors[node.inputs[0]];
+            graph.tensors[node.outputs[0]] = operators_.flatten(in);
+        }
         else {
             std::cerr << "Operator not supported yet: " << node.op_type << std::endl;
         }
