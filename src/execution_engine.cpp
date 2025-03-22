@@ -1,5 +1,6 @@
 #include "execution_engine.h"
 #include "operators.h"
+#include <onnx/onnx_pb.h>
 #include <iostream>
 
 ExecutionEngine::ExecutionEngine() {}
@@ -12,14 +13,24 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
     for (const auto& node : graph.nodes) {
         std::cout << "Executing Node: " << node.op_type << std::endl;
 
-        if (node.op_type == "Conv") {
+        if (node.op_type == "Constant") {
+            assert(!node.attributes.empty());
+            const onnx::AttributeProto& attr = node.attributes[0];
+            assert(attr.has_t());
+            const onnx::TensorProto& tensor_proto = attr.t();
+            Tensor tensor({tensor_proto.dims().begin(), tensor_proto.dims().end()});
+            memcpy(tensor.data().data(), tensor_proto.raw_data().data(), tensor_proto.raw_data().size());
+            graph.tensors[node.outputs[0]] = tensor;
+        }
+        else if (node.op_type == "Conv") {
             auto& in = graph.tensors[node.inputs[0]];
             auto& weights = graph.tensors[node.inputs[1]];
             auto& bias = graph.tensors[node.inputs[2]];
             int stride = 1;    // TODO: Retrieve from node attributes later clearly
             int padding = 1;   // TODO: Retrieve from node attributes later clearly
             graph.tensors[node.outputs[0]] = operators_.conv2d(in, weights, bias, stride, padding);
-        }else if (node.op_type == "MatMul") {
+        }
+        else if (node.op_type == "MatMul") {
             auto& a = graph.tensors[node.inputs[0]];
             auto& b = graph.tensors[node.inputs[1]];
             graph.tensors[node.outputs[0]] = operators_.matmul(a, b);

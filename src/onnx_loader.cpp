@@ -28,13 +28,8 @@ ComputationGraph ONNXModel::parseGraph() {
 
     // Parse initializers (constants: weights, biases)
     for (const auto& initializer : graph_proto.initializer()) {
-        Tensor tensor;
-        std::vector<int> shape(initializer.dims().begin(), initializer.dims().end());
-        tensor = Tensor(shape);
-
-        const auto& raw_data = initializer.raw_data();
-        memcpy(tensor.data().data(), raw_data.data(), raw_data.size());
-
+        Tensor tensor({initializer.dims().begin(), initializer.dims().end()});
+        memcpy(tensor.data().data(), initializer.raw_data().data(), initializer.raw_data().size());
         graph.tensors[initializer.name()] = tensor;
     }
 
@@ -42,10 +37,11 @@ ComputationGraph ONNXModel::parseGraph() {
     for (const auto& node_proto : graph_proto.node()) {
         GraphNode node;
         node.op_type = node_proto.op_type();
-
         node.inputs.assign(node_proto.input().begin(), node_proto.input().end());
         node.outputs.assign(node_proto.output().begin(), node_proto.output().end());
-
+        for (const auto& attr : node_proto.attribute()) {
+            node.attributes.push_back(attr);
+        }
         graph.nodes.push_back(node);
     }
 
