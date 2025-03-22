@@ -3,7 +3,7 @@
 
 TEST(GraphParsingTest, ParseSimpleModel) {
     ONNXModel model;
-    ASSERT_TRUE(model.load("../models/simple_matmul_relu.onnx"));
+    ASSERT_TRUE(model.load("../test_data/simple_matmul_relu.onnx"));
 
     ComputationGraph graph = model.parseGraph();
 

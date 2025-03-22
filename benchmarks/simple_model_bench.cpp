@@ -4,7 +4,7 @@
 
 static void BM_SimpleModel(benchmark::State& state) {
     ONNXModel model;
-    model.load("../models/simple_matmul_relu.onnx");
+    model.load("../test_data/simple_matmul_relu.onnx");
 
     ComputationGraph graph = model.parseGraph();
 
