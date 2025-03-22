@@ -22,8 +22,7 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
         }else if (node.op_type == "MatMul") {
             auto& a = graph.tensors[node.inputs[0]];
             auto& b = graph.tensors[node.inputs[1]];
-            auto output = operators_.matmul(a, b);
-            graph.tensors[node.outputs[0]] = output;
+            graph.tensors[node.outputs[0]] = operators_.matmul(a, b);
         }
         else if (node.op_type == "Add") {
             auto& a = graph.tensors[node.inputs[0]];
@@ -32,8 +31,7 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
         }
         else if (node.op_type == "Relu") {
             auto& input_tensor = graph.tensors[node.inputs[0]];
-            auto output = operators_.relu(input_tensor);
-            graph.tensors[node.outputs[0]] = output;
+            graph.tensors[node.outputs[0]] = operators_.relu(input_tensor);
         }
         else if (node.op_type == "BatchNormalization") {
             auto& in = graph.tensors[node.inputs[0]];
@@ -43,6 +41,10 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
             auto& var = graph.tensors[node.inputs[4]];
             float epsilon = 1e-5f; // TODO: later parse from attributes clearly
             graph.tensors[node.outputs[0]] = operators_.batchNorm(in, scale, bias, mean, var, epsilon);
+        }
+        else if (node.op_type == "GlobalAveragePool") {
+            auto& in = graph.tensors[node.inputs[0]];
+            graph.tensors[node.outputs[0]] = operators_.globalAveragePool(in);
         }
         else {
             std::cerr << "Operator not supported yet: " << node.op_type << std::endl;

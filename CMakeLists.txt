@@ -58,6 +58,7 @@ add_executable(TinyONNX_tests
     tests/test_add.cpp
     tests/test_relu.cpp
     tests/test_batchnorm.cpp
+    tests/test_global_avgpool.cpp
 )
 
 target_link_libraries(TinyONNX_tests

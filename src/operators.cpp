@@ -126,3 +126,31 @@ Tensor Operators::batchNorm(const Tensor& input, const Tensor& scale, const Tens
 
     return output;
 }
+
+Tensor Operators::globalAveragePool(const Tensor& input) {
+    assert(input.shape().size() == 4); // [batch, channels, height, width]
+
+    int batch = input.shape()[0];
+    int channels = input.shape()[1];
+    int height = input.shape()[2];
+    int width = input.shape()[3];
+
+    Tensor output({batch, channels, 1, 1});
+
+    for (int b = 0; b < batch; ++b) {
+        for (int c = 0; c < channels; ++c) {
+            float sum = 0.0f;
+            for (int h = 0; h < height; ++h) {
+                for (int w = 0; w < width; ++w) {
+                    int idx = ((b * channels + c) * height + h) * width + w;
+                    sum += input.data()[idx];
+                }
+            }
+            float avg = sum / (height * width);
+            int out_idx = (b * channels + c);
+            output.data()[out_idx] = avg;
+        }
+    }
+
+    return output;
+}

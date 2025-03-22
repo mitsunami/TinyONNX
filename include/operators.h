@@ -10,6 +10,7 @@ public:
     Tensor add(const Tensor& a, const Tensor& b);
     Tensor relu(const Tensor& input);
     Tensor batchNorm(const Tensor& input, const Tensor& scale, const Tensor& bias, const Tensor& mean, const Tensor& var, float epsilon);
+    Tensor globalAveragePool(const Tensor& input);
 };
 
 #endif // OPERATORS_H
