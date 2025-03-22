@@ -154,3 +154,31 @@ Tensor Operators::globalAveragePool(const Tensor& input) {
 
     return output;
 }
+
+Tensor Operators::reshape(const Tensor& input, const std::vector<int>& new_shape) {
+    size_t input_size = input.data().size();
+
+    // Calculate new shape size
+    size_t new_size = 1;
+    int infer_dim = -1;
+    for (size_t i = 0; i < new_shape.size(); ++i) {
+        if (new_shape[i] == -1) {
+            infer_dim = i;
+        } else {
+            new_size *= new_shape[i];
+        }
+    }
+
+    std::vector<int> final_shape = new_shape;
+    if (infer_dim != -1) {
+        final_shape[infer_dim] = input_size / new_size;
+        new_size *= final_shape[infer_dim];
+    }
+
+    assert(input_size == new_size);
+
+    Tensor output(final_shape);
+    output.data() = input.data(); // Just copy data, no change
+
+    return output;
+}

@@ -46,6 +46,12 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
             auto& in = graph.tensors[node.inputs[0]];
             graph.tensors[node.outputs[0]] = operators_.globalAveragePool(in);
         }
+        else if (node.op_type == "Reshape") {
+            auto& in = graph.tensors[node.inputs[0]];
+            auto& shape_tensor = graph.tensors[node.inputs[1]];
+            std::vector<int> new_shape(shape_tensor.data().begin(), shape_tensor.data().end());
+            graph.tensors[node.outputs[0]] = operators_.reshape(in, new_shape);
+        }
         else {
             std::cerr << "Operator not supported yet: " << node.op_type << std::endl;
         }

@@ -11,6 +11,7 @@ public:
     Tensor relu(const Tensor& input);
     Tensor batchNorm(const Tensor& input, const Tensor& scale, const Tensor& bias, const Tensor& mean, const Tensor& var, float epsilon);
     Tensor globalAveragePool(const Tensor& input);
+    Tensor reshape(const Tensor& input, const std::vector<int>& new_shape);
 };
 
 #endif // OPERATORS_H
