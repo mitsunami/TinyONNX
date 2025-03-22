@@ -27,7 +27,17 @@ jobs:
         cd build
         cmake .. -DCMAKE_BUILD_TYPE=Release
     
-    - name: Build Project
+    - name: Build
       run: |
         cd build
         make -j$(nproc)
+
+    - name: Run Tests
+      run: |
+        cd build
+        ctest --output-on-failure
+
+    - name: Run Benchmarks
+      run: |
+        cd build
+        ./TinyONNX_benchmarks
