@@ -1,5 +1,8 @@
 # TinyONNX
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/mitsunami/TinyONNX/actions/workflows/build.yml/badge.svg)](https://github.com/mitsunami/TinyONNX/actions/workflows/build.yml)
+
 A lightweight ONNX Runtime
 
 ## Features

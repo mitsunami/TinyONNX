@@ -1,0 +1,43 @@
+name: TinyONNX CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang cmake protobuf-compiler libprotobuf-dev
+    
+    - name: Initialize Submodules
+      run: |
+        git submodule update --init --recursive
+    
+    - name: Configure CMake
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release
+    
+    - name: Build
+      run: |
+        cd build
+        make -j$(nproc)
+
+    - name: Run Tests
+      run: |
+        cd build
+        ctest --output-on-failure
+
+    - name: Run Benchmarks
+      run: |
+        cd build
+        ./TinyONNX_benchmarks

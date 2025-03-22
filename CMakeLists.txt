@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.16)
 project(TinyONNX LANGUAGES CXX)
 
 # Explicitly force Clang compiler
-#set(CMAKE_CXX_COMPILER clang++)
-#set(CMAKE_C_COMPILER clang)
 set(CMAKE_CXX_COMPILER "/usr/bin/clang++" CACHE STRING "C++ compiler" FORCE)
 set(CMAKE_C_COMPILER "/usr/bin/clang" CACHE STRING "C compiler" FORCE)
 
@@ -22,20 +20,22 @@ add_subdirectory(third_party/onnx)
 
 find_package(Protobuf REQUIRED)
 
-set(SRC_FILES
-    src/main.cpp
+# Create TinyONNX core as a static library
+add_library(TinyONNX_lib STATIC
     src/onnx_loader.cpp
     src/execution_engine.cpp
     src/tensor.cpp
     src/operators.cpp
 )
-add_executable(TinyONNX ${SRC_FILES})
 
-# Link libraries
-target_link_libraries(TinyONNX
+target_link_libraries(TinyONNX_lib
     onnx_proto
     protobuf::libprotobuf
 )
+
+# Main executable (now uses library)
+add_executable(TinyONNX src/main.cpp)
+target_link_libraries(TinyONNX TinyONNX_lib)
 
 target_compile_definitions(TinyONNX PRIVATE ONNX_ML=1)
 target_compile_options(TinyONNX PRIVATE -Wall -Wextra -O3)
@@ -43,3 +43,37 @@ target_compile_options(TinyONNX PRIVATE -Wall -Wextra -O3)
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
     target_compile_options(TinyONNX PRIVATE -march=armv8-a+simd)
 endif()
+
+
+# GoogleTest
+add_subdirectory(third_party/googletest)
+enable_testing()
+
+add_executable(TinyONNX_tests
+    tests/test_main.cpp
+    tests/test_matmul.cpp
+    tests/test_relu.cpp
+)
+
+target_link_libraries(TinyONNX_tests
+    gtest
+    gtest_main
+    TinyONNX_lib
+)
+
+include(GoogleTest)
+gtest_discover_tests(TinyONNX_tests)
+
+
+# Benchmarks
+set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "")
+add_subdirectory(third_party/benchmark)
+
+add_executable(TinyONNX_benchmarks
+    benchmarks/benchmark_main.cpp
+    benchmarks/matmul_bench.cpp
+)
+target_link_libraries(TinyONNX_benchmarks
+    benchmark
+    TinyONNX_lib
+)
