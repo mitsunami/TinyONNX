@@ -12,7 +12,14 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
     for (const auto& node : graph.nodes) {
         std::cout << "Executing Node: " << node.op_type << std::endl;
 
-        if (node.op_type == "MatMul") {
+        if (node.op_type == "Conv") {
+            Tensor& in = graph.tensors[node.inputs[0]];
+            Tensor& weights = graph.tensors[node.inputs[1]];
+            Tensor& bias = graph.tensors[node.inputs[2]];
+            int stride = 1;    // TODO: Retrieve from node attributes later clearly
+            int padding = 1;   // TODO: Retrieve from node attributes later clearly
+            graph.tensors[node.outputs[0]] = operators_.conv2d(in, weights, bias, stride, padding);
+        }else if (node.op_type == "MatMul") {
             Tensor& a = graph.tensors[node.inputs[0]];
             Tensor& b = graph.tensors[node.inputs[1]];
             Tensor output = operators_.matmul(a, b);

@@ -53,6 +53,7 @@ add_executable(TinyONNX_tests
     tests/test_main.cpp
     tests/test_graph_parsing.cpp
     tests/test_simple_model.cpp
+    tests/test_conv2d.cpp
     tests/test_matmul.cpp
     tests/test_relu.cpp
 )
