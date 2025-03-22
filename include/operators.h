@@ -3,14 +3,10 @@
 
 #include "tensor.h"
 
-class ReLU {
+class Operators {
 public:
-    void compute(Tensor& input);
-};
-
-class MatMul {
-public:
-    Tensor compute(const Tensor& a, const Tensor& b);
+    Tensor matmul(const Tensor& a, const Tensor& b);
+    Tensor relu(const Tensor& input);
 };
 
 #endif // OPERATORS_H

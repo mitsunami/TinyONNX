@@ -10,10 +10,10 @@ static void BM_MatMul(benchmark::State& state) {
     a.fillRandom();
     b.fillRandom();
 
-    MatMul matmul;
+    Operators ops;
 
     for (auto _ : state) {
-        Tensor result = matmul.compute(a, b);
+        Tensor result = ops.matmul(a, b);
         benchmark::DoNotOptimize(result);
     }
 

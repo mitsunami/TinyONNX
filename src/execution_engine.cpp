@@ -4,23 +4,36 @@
 
 ExecutionEngine::ExecutionEngine() {}
 
-void ExecutionEngine::run(const ONNXModel& model) {
+void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input) {
     std::cout << "Running inference..." << std::endl;
 
-    Tensor input({1, 3, 224, 224});
-    input.fillRandom();
-    input.print();
+    graph.tensors["input"] = input;
 
-    Tensor weights({224, 1000});
-    weights.fillRandom();
+    for (const auto& node : graph.nodes) {
+        std::cout << "Executing Node: " << node.op_type << std::endl;
 
-    MatMul matmul;
-    Tensor output = matmul.compute(input, weights);
-    output.print();
+        if (node.op_type == "MatMul") {
+            Tensor& a = graph.tensors[node.inputs[0]];
+            Tensor& b = graph.tensors[node.inputs[1]];
+            Tensor output = operators_.matmul(a, b);
+            graph.tensors[node.outputs[0]] = output;
+        }
+        else if (node.op_type == "Relu") {
+            Tensor& input_tensor = graph.tensors[node.inputs[0]];
+            Tensor output = operators_.relu(input_tensor);
+            graph.tensors[node.outputs[0]] = output;
+        }
+        else {
+            std::cerr << "Operator not supported yet: " << node.op_type << std::endl;
+        }
+    }
+    
+    // Show final output tensor (assuming named 'output')
+    if (graph.tensors.count("output")) {
+        std::cout << "Final Output Tensor: ";
+        graph.tensors["output"].print();
+    } else {
+        std::cerr << "Output tensor not found!" << std::endl;
+    }
 
-    ReLU relu;
-    relu.compute(output);
-    output.print();
-
-    // TODO: Complete execution graph logic
 }

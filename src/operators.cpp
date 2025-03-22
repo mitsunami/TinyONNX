@@ -1,12 +1,8 @@
 #include "operators.h"
-#include <iostream>
 #include <cassert>
+#include <algorithm>
 
-void ReLU::compute(Tensor& input) {
-    input.applyReLU();
-}
-
-Tensor MatMul::compute(const Tensor& a, const Tensor& b) {
+Tensor Operators::matmul(const Tensor& a, const Tensor& b) {
     assert(a.shape().size() == 2 && b.shape().size() == 2);
     int m = a.shape()[0];
     int k = a.shape()[1];
@@ -14,6 +10,7 @@ Tensor MatMul::compute(const Tensor& a, const Tensor& b) {
     assert(k == b.shape()[0]);
 
     Tensor output({m, n});
+
     for (int i = 0; i < m; ++i) {
         for (int j = 0; j < n; ++j) {
             float sum = 0.0f;
@@ -23,5 +20,16 @@ Tensor MatMul::compute(const Tensor& a, const Tensor& b) {
             output.data()[i * n + j] = sum;
         }
     }
+
+    return output;
+}
+
+Tensor Operators::relu(const Tensor& input) {
+    Tensor output(input.shape());
+
+    for (size_t i = 0; i < input.data().size(); ++i) {
+        output.data()[i] = std::max(0.0f, input.data()[i]);
+    }
+
     return output;
 }

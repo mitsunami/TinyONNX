@@ -16,8 +16,14 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    ComputationGraph graph = model.parseGraph();
+
+    // Example input tensor clearly matching your simple MatMul+ReLU model
+    Tensor input({1, 224});
+    input.fillRandom();
+
     ExecutionEngine engine;
-    engine.run(model);
+    engine.executeGraph(graph, input);
 
     std::cout << "ONNX Model execution completed!" << std::endl;
     return 0;
