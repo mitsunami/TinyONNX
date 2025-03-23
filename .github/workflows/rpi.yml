@@ -1,4 +1,4 @@
-name: Validate on Raspberry Pi 4
+name: Validate on Raspberry Pi
 
 on:
   workflow_dispatch:  # Manual trigger
@@ -16,7 +16,7 @@ jobs:
           sudo apt-get install -y clang cmake protobuf-compiler libprotobuf-dev
 
       - name: Install Python deps
-        run: pip3.10 install numpy
+        run: pip3 install numpy
 
       - name: Configure CMake
         run: |
@@ -33,7 +33,7 @@ jobs:
         run: ./build/TinyONNX test_data/mobilenet_v2.onnx test_data/input_tensor.npy
 
       - name: Validate MobileNet output
-        run: python3.10 tests/validate_mobilenet.py
+        run: python3 tests/validate_mobilenet.py
 
       - name: Benchmark runtime
         run: /usr/bin/time -v ./build/TinyONNX test_data/mobilenet_v2.onnx test_data/input_tensor.npy
