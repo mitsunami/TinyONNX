@@ -94,6 +94,7 @@ add_executable(TinyONNX_benchmarks
     benchmarks/benchmark_main.cpp
     benchmarks/simple_model_bench.cpp
     benchmarks/matmul_bench.cpp
+    benchmarks/conv2d_bench.cpp
 )
 target_link_libraries(TinyONNX_benchmarks
     benchmark
