@@ -27,6 +27,7 @@ add_library(TinyONNX_lib STATIC
     src/tensor.cpp
     src/operators.cpp
     src/onnx_utils.cpp
+    src/graph_utils.cpp
 )
 
 target_link_libraries(TinyONNX_lib
@@ -62,6 +63,7 @@ add_executable(TinyONNX_tests
     tests/test_batchnorm.cpp
     tests/test_global_avgpool.cpp
     tests/test_reshape.cpp
+    tests/test_toposort.cpp
 )
 
 target_link_libraries(TinyONNX_tests

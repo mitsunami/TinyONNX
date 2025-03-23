@@ -1,6 +1,4 @@
-#ifndef EXECUTION_ENGINE_H
-#define EXECUTION_ENGINE_H
-
+#pragma once
 #include "graph.h"
 #include "tensor.h"
 #include "operators.h"
@@ -13,5 +11,3 @@ public:
 private:
     Operators operators_;
 };
-
-#endif // EXECUTION_ENGINE_H

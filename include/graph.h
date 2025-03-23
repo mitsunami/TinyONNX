@@ -1,6 +1,4 @@
-#ifndef GRAPH_H
-#define GRAPH_H
-
+#pragma once
 #include <vector>
 #include <string>
 #include <unordered_map>
@@ -15,8 +13,7 @@ struct GraphNode {
 };
 
 struct ComputationGraph {
-    std::vector<GraphNode> nodes;
+    std::vector<GraphNode> nodes; // original order
+    std::vector<const GraphNode*> sorted_nodes; // topologically sorted
     std::unordered_map<std::string, Tensor> tensors;
 };
-
-#endif // GRAPH_H

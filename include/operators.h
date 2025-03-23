@@ -1,6 +1,4 @@
-#ifndef OPERATORS_H
-#define OPERATORS_H
-
+#pragma once
 #include "tensor.h"
 
 class Operators {
@@ -18,5 +16,3 @@ public:
     Tensor reshape(const Tensor& input, const std::vector<int>& new_shape);
     Tensor flatten(const Tensor& input);
 };
-
-#endif // OPERATORS_H
