@@ -21,6 +21,10 @@ jobs:
           source venv/bin/activate
           pip install numpy
 
+      - name: Initialize Submodules
+        run: |
+          git submodule update --init --recursive
+
       - name: Configure CMake
         run: |
           mkdir build
