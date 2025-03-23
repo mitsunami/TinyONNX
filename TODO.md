@@ -20,7 +20,6 @@
 
 ## 📦 Deployment & Integration
 - [ ] Raspberry Pi build
-- [ ] Windows on Arm build
 - [ ] Docker image
 - [ ] CLI tool
 

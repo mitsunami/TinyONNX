@@ -1,0 +1,39 @@
+name: Validate on Raspberry Pi 4
+
+on:
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  rpi-test:
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake protobuf-compiler libprotobuf-dev
+
+      - name: Install Python deps
+        run: pip3.10 install numpy
+
+      - name: Configure CMake
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: |
+          cd build
+          make -j$(nproc)
+
+      - name: Run MobileNet inference
+        run: ./build/TinyONNX test_data/mobilenet_v2.onnx test_data/input_tensor.npy
+
+      - name: Validate MobileNet output
+        run: python3.10 tests/validate_mobilenet.py
+
+      - name: Benchmark runtime
+        run: /usr/bin/time -v ./build/TinyONNX test_data/mobilenet_v2.onnx test_data/input_tensor.npy
