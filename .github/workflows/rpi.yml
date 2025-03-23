@@ -15,8 +15,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang cmake protobuf-compiler libprotobuf-dev
 
-      - name: Install Python deps
-        run: pip3 install numpy
+      - name: Set up virtualenv and install NumPy
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install numpy
 
       - name: Configure CMake
         run: |
@@ -33,7 +36,9 @@ jobs:
         run: ./build/TinyONNX test_data/mobilenet_v2.onnx test_data/input_tensor.npy
 
       - name: Validate MobileNet output
-        run: python3 tests/validate_mobilenet.py
+        run: |
+          source venv/bin/activate
+          python3 tests/validate_mobilenet.py
 
       - name: Benchmark runtime
         run: /usr/bin/time -v ./build/TinyONNX test_data/mobilenet_v2.onnx test_data/input_tensor.npy
