@@ -6,7 +6,7 @@
 - [x] Execute simple models
 
 ## ⚙️ Runtime Infrastructure
-- [ ] Graph topological sort
+- [x] Graph topological sort
 - [ ] Dynamic shape support
 - [ ] Basic shape inference
 - [ ] Fused ops (Conv+BN+ReLU)
