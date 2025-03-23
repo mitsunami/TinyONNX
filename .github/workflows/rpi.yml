@@ -13,7 +13,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake protobuf-compiler libprotobuf-dev
+          sudo apt-get install -y clang cmake protobuf-compiler libprotobuf-dev time
 
       - name: Set up virtualenv and install NumPy
         run: |
@@ -29,7 +29,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release
+          cmake .. -DENABLE_TIMING=ON -DENABLE_MEM_USAGE=ON -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: |

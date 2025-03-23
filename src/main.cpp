@@ -2,6 +2,8 @@
 #include "onnx_loader.h"
 #include "execution_engine.h"
 #include "tensor.h"
+#include "utils/timer.h"
+#include "utils/meminfo.h"
 #include <fstream>
 
 Tensor loadNumpyInput(const std::string& filename) {
@@ -33,8 +35,13 @@ int main(int argc, char* argv[]) {
 
     Tensor input = loadNumpyInput(argv[2]);
 
+    Timer total_timer("Total Graph Execution");
     ExecutionEngine engine;
     engine.executeGraph(graph, input);
+
+    #ifdef ENABLE_MEM_USAGE
+    printPeakRSS();
+    #endif
 
     // Show final output tensor (assuming named 'output')
     if (graph.tensors.count("output")) {

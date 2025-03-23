@@ -2,18 +2,17 @@
 #include "operators.h"
 #include "onnx_utils.h"
 #include "graph_utils.h"
+#include "utils/timer.h"
 #include <onnx/onnx_pb.h>
 #include <iostream>
 
 ExecutionEngine::ExecutionEngine() {}
 
 void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input) {
-    std::cout << "Running inference..." << std::endl;
-
     graph.tensors["input"] = input;
 
     for (const GraphNode* node : graph.sorted_nodes) {
-        std::cout << "Executing Node: " << node->op_type << std::endl;
+        Timer timer("Op: " + node->op_type);
 
         if (node->op_type == "Constant") {
             assert(!node->attributes.empty());
