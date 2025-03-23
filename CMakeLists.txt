@@ -26,6 +26,7 @@ add_library(TinyONNX_lib STATIC
     src/execution_engine.cpp
     src/tensor.cpp
     src/operators.cpp
+    src/onnx_utils.cpp
 )
 
 target_link_libraries(TinyONNX_lib
@@ -51,8 +52,16 @@ enable_testing()
 
 add_executable(TinyONNX_tests
     tests/test_main.cpp
+    tests/test_graph_parsing.cpp
+    tests/test_simple_model.cpp
+    tests/test_conv2d.cpp
     tests/test_matmul.cpp
+    tests/test_add.cpp
     tests/test_relu.cpp
+    tests/test_softmax.cpp
+    tests/test_batchnorm.cpp
+    tests/test_global_avgpool.cpp
+    tests/test_reshape.cpp
 )
 
 target_link_libraries(TinyONNX_tests
@@ -71,6 +80,7 @@ add_subdirectory(third_party/benchmark)
 
 add_executable(TinyONNX_benchmarks
     benchmarks/benchmark_main.cpp
+    benchmarks/simple_model_bench.cpp
     benchmarks/matmul_bench.cpp
 )
 target_link_libraries(TinyONNX_benchmarks

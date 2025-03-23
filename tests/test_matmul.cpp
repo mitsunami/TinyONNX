@@ -10,8 +10,8 @@ TEST(MatMulTest, BasicMultiplication) {
     std::fill(a.data().begin(), a.data().end(), 1.0f);
     std::fill(b.data().begin(), b.data().end(), 2.0f);
 
-    MatMul matmul;
-    Tensor result = matmul.compute(a, b);
+    Operators ops;
+    Tensor result = ops.matmul(a, b);
 
     // Expect all elements to be 6 (1*2 + 1*2 + 1*2)
     for (float val : result.data()) {

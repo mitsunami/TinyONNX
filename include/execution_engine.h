@@ -1,13 +1,17 @@
 #ifndef EXECUTION_ENGINE_H
 #define EXECUTION_ENGINE_H
 
-#include "onnx_loader.h"
+#include "graph.h"
 #include "tensor.h"
+#include "operators.h"
 
 class ExecutionEngine {
 public:
     ExecutionEngine();
-    void run(const ONNXModel& model);
+    void executeGraph(ComputationGraph& graph, const Tensor& input);
+
+private:
+    Operators operators_;
 };
 
 #endif // EXECUTION_ENGINE_H
