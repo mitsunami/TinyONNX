@@ -27,7 +27,18 @@ add_library(TinyONNX_lib STATIC
     src/tensor.cpp
     src/operators.cpp
     src/onnx_utils.cpp
+    src/graph_utils.cpp
 )
+
+option(ENABLE_TIMING "Enable profiling timers" OFF)
+if (ENABLE_TIMING)
+    add_definitions(-DENABLE_TIMING)
+endif()
+
+option(ENABLE_MEM_USAGE "Enable profiling memory usage" OFF)
+if (ENABLE_MEM_USAGE)
+    add_definitions(-DENABLE_MEM_USAGE)
+endif()
 
 target_link_libraries(TinyONNX_lib
     onnx_proto
@@ -62,6 +73,7 @@ add_executable(TinyONNX_tests
     tests/test_batchnorm.cpp
     tests/test_global_avgpool.cpp
     tests/test_reshape.cpp
+    tests/test_toposort.cpp
 )
 
 target_link_libraries(TinyONNX_tests

@@ -1,6 +1,4 @@
-#ifndef TENSOR_H
-#define TENSOR_H
-
+#pragma once
 #include <vector>
 
 class Tensor {
@@ -20,5 +18,3 @@ private:
     std::vector<int> shape_;
     std::vector<float> data_;
 };
-
-#endif // TENSOR_H

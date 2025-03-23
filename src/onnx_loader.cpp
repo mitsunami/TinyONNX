@@ -1,5 +1,6 @@
 #include "onnx_loader.h"
 #include "graph.h"
+#include "graph_utils.h"
 #include <iostream>
 #include <fstream>
 
@@ -44,6 +45,8 @@ ComputationGraph ONNXModel::parseGraph() {
         }
         graph.nodes.push_back(node);
     }
+
+    graph.sorted_nodes = topologicalSort(graph);
 
     return graph;
 }

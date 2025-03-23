@@ -1,32 +1,32 @@
 #include "execution_engine.h"
 #include "operators.h"
 #include "onnx_utils.h"
+#include "graph_utils.h"
+#include "utils/timer.h"
 #include <onnx/onnx_pb.h>
 #include <iostream>
 
 ExecutionEngine::ExecutionEngine() {}
 
 void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input) {
-    std::cout << "Running inference..." << std::endl;
-
     graph.tensors["input"] = input;
 
-    for (const auto& node : graph.nodes) {
-        std::cout << "Executing Node: " << node.op_type << std::endl;
+    for (const GraphNode* node : graph.sorted_nodes) {
+        Timer timer("Op: " + node->op_type);
 
-        if (node.op_type == "Constant") {
-            assert(!node.attributes.empty());
-            const onnx::AttributeProto& attr = node.attributes[0];
+        if (node->op_type == "Constant") {
+            assert(!node->attributes.empty());
+            const onnx::AttributeProto& attr = node->attributes[0];
             assert(attr.has_t());
             const onnx::TensorProto& tensor_proto = attr.t();
             Tensor tensor({tensor_proto.dims().begin(), tensor_proto.dims().end()});
             memcpy(tensor.data().data(), tensor_proto.raw_data().data(), tensor_proto.raw_data().size());
-            graph.tensors[node.outputs[0]] = tensor;
+            graph.tensors[node->outputs[0]] = tensor;
         }
-        else if (node.op_type == "Conv") {
-            auto& in = graph.tensors[node.inputs[0]];
-            auto& weights = graph.tensors[node.inputs[1]];
-            auto& bias = graph.tensors[node.inputs[2]];
+        else if (node->op_type == "Conv") {
+            auto& in = graph.tensors[node->inputs[0]];
+            auto& weights = graph.tensors[node->inputs[1]];
+            auto& bias = graph.tensors[node->inputs[2]];
             std::vector<int> strides = getIntListAttr(node, "strides");
             std::vector<int> pads = getIntListAttr(node, "pads");
             std::vector<int> dilations = getIntListAttr(node, "dilations");
@@ -34,19 +34,19 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
             if (strides.empty()) strides = {1, 1};
             if (pads.empty()) pads = {0, 0, 0, 0};  // top, left, bottom, right
             if (dilations.empty()) dilations = {1, 1};
-            graph.tensors[node.outputs[0]] = operators_.conv2d(
+            graph.tensors[node->outputs[0]] = operators_.conv2d(
                 in, weights, bias, strides, pads, dilations, groups
             );
         }
-        else if (node.op_type == "MatMul") {
-            auto& a = graph.tensors[node.inputs[0]];
-            auto& b = graph.tensors[node.inputs[1]];
-            graph.tensors[node.outputs[0]] = operators_.matmul(a, b);
+        else if (node->op_type == "MatMul") {
+            auto& a = graph.tensors[node->inputs[0]];
+            auto& b = graph.tensors[node->inputs[1]];
+            graph.tensors[node->outputs[0]] = operators_.matmul(a, b);
         }
-        else if (node.op_type == "Gemm") {
-            auto& in = graph.tensors[node.inputs[0]];
-            auto& weights = graph.tensors[node.inputs[1]];
-            auto& bias = graph.tensors[node.inputs[2]];
+        else if (node->op_type == "Gemm") {
+            auto& in = graph.tensors[node->inputs[0]];
+            auto& weights = graph.tensors[node->inputs[1]];
+            auto& bias = graph.tensors[node->inputs[2]];
             float alpha = getFloatAttr(node, "alpha", 1.0f);
             float beta = getFloatAttr(node, "beta", 1.0f);
             bool transB = getIntAttr(node, "transB", 0);
@@ -56,52 +56,52 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
             } else {
                 result = operators_.gemm(in, weights, bias, alpha, beta);
             }
-            graph.tensors[node.outputs[0]] = result;
+            graph.tensors[node->outputs[0]] = result;
         }
-        else if (node.op_type == "Add") {
-            auto& a = graph.tensors[node.inputs[0]];
-            auto& b = graph.tensors[node.inputs[1]];
-            graph.tensors[node.outputs[0]] = operators_.add(a, b);
+        else if (node->op_type == "Add") {
+            auto& a = graph.tensors[node->inputs[0]];
+            auto& b = graph.tensors[node->inputs[1]];
+            graph.tensors[node->outputs[0]] = operators_.add(a, b);
         }
-        else if (node.op_type == "Relu") {
-            auto& input_tensor = graph.tensors[node.inputs[0]];
-            graph.tensors[node.outputs[0]] = operators_.relu(input_tensor);
+        else if (node->op_type == "Relu") {
+            auto& input_tensor = graph.tensors[node->inputs[0]];
+            graph.tensors[node->outputs[0]] = operators_.relu(input_tensor);
         }
-        else if (node.op_type == "Clip") {
-            auto& in = graph.tensors[node.inputs[0]];
+        else if (node->op_type == "Clip") {
+            auto& in = graph.tensors[node->inputs[0]];
             float min_val = getFloatAttr(node, "min", 0.0f);
             float max_val = getFloatAttr(node, "max", 6.0f);
-            graph.tensors[node.outputs[0]] = operators_.clip(in, min_val, max_val);
+            graph.tensors[node->outputs[0]] = operators_.clip(in, min_val, max_val);
         }
-        else if (node.op_type == "Softmax") {
-            auto& input_tensor = graph.tensors[node.inputs[0]];
-            graph.tensors[node.outputs[0]] = operators_.softmax(input_tensor);
+        else if (node->op_type == "Softmax") {
+            auto& input_tensor = graph.tensors[node->inputs[0]];
+            graph.tensors[node->outputs[0]] = operators_.softmax(input_tensor);
         }
-        else if (node.op_type == "BatchNormalization") {
-            auto& in = graph.tensors[node.inputs[0]];
-            auto& scale = graph.tensors[node.inputs[1]];
-            auto& bias = graph.tensors[node.inputs[2]];
-            auto& mean = graph.tensors[node.inputs[3]];
-            auto& var = graph.tensors[node.inputs[4]];
+        else if (node->op_type == "BatchNormalization") {
+            auto& in = graph.tensors[node->inputs[0]];
+            auto& scale = graph.tensors[node->inputs[1]];
+            auto& bias = graph.tensors[node->inputs[2]];
+            auto& mean = graph.tensors[node->inputs[3]];
+            auto& var = graph.tensors[node->inputs[4]];
             float epsilon = 1e-5f; // TODO: later parse from attributes clearly
-            graph.tensors[node.outputs[0]] = operators_.batchNorm(in, scale, bias, mean, var, epsilon);
+            graph.tensors[node->outputs[0]] = operators_.batchNorm(in, scale, bias, mean, var, epsilon);
         }
-        else if (node.op_type == "GlobalAveragePool") {
-            auto& in = graph.tensors[node.inputs[0]];
-            graph.tensors[node.outputs[0]] = operators_.globalAveragePool(in);
+        else if (node->op_type == "GlobalAveragePool") {
+            auto& in = graph.tensors[node->inputs[0]];
+            graph.tensors[node->outputs[0]] = operators_.globalAveragePool(in);
         }
-        else if (node.op_type == "Reshape") {
-            auto& in = graph.tensors[node.inputs[0]];
-            auto& shape_tensor = graph.tensors[node.inputs[1]];
+        else if (node->op_type == "Reshape") {
+            auto& in = graph.tensors[node->inputs[0]];
+            auto& shape_tensor = graph.tensors[node->inputs[1]];
             std::vector<int> new_shape(shape_tensor.data().begin(), shape_tensor.data().end());
-            graph.tensors[node.outputs[0]] = operators_.reshape(in, new_shape);
+            graph.tensors[node->outputs[0]] = operators_.reshape(in, new_shape);
         }
-        else if (node.op_type == "Flatten") {
-            auto& in = graph.tensors[node.inputs[0]];
-            graph.tensors[node.outputs[0]] = operators_.flatten(in);
+        else if (node->op_type == "Flatten") {
+            auto& in = graph.tensors[node->inputs[0]];
+            graph.tensors[node->outputs[0]] = operators_.flatten(in);
         }
         else {
-            std::cerr << "Operator not supported yet: " << node.op_type << std::endl;
+            std::cerr << "Operator not supported yet: " << node->op_type << std::endl;
         }
     }
     
