@@ -34,7 +34,7 @@ jobs:
       - name: Build
         run: |
           cd build
-          make -j$(nproc)
+          make -j2
 
       - name: Run MobileNet inference
         run: ./build/TinyONNX test_data/mobilenet_v2.onnx test_data/input_tensor.npy
