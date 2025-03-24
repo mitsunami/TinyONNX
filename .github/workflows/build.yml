@@ -16,7 +16,12 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y clang-14 cmake protobuf-compiler libprotobuf-dev libomp-14-dev
-    
+
+    - name: Check Clang Version and OpenMP
+      run: |
+        clang-14 --version
+        clang++-14 -v -fopenmp -x c++ - -o /dev/null <<< ""
+
     - name: Initialize Submodules
       run: |
         git submodule update --init --recursive
