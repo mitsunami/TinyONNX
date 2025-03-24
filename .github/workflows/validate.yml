@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake protobuf-compiler libprotobuf-dev libomp-dev
+          sudo apt-get install -y clang-14 cmake protobuf-compiler libprotobuf-dev libomp-14-dev
 
       - name: Install NumPy
         run: pip install numpy
