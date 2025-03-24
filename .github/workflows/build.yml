@@ -19,8 +19,13 @@ jobs:
 
     - name: Verify omp.h and OpenMP works
       run: |
-        echo '#include <omp.h>\nint main() { return 0; }' > test.cpp
-        clang++-14 -fopenmp test.cpp -o test_openmp && ./test_openmp
+        cat <<EOF > test.cpp
+        #include <omp.h>
+        int main() { return 0; }
+        EOF
+
+        clang++-14 -fopenmp test.cpp -o test_openmp
+        ./test_openmp
 
     - name: Initialize Submodules
       run: |
