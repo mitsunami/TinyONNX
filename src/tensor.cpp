@@ -25,7 +25,7 @@ Tensor::Tensor(const std::vector<int>& shape, const std::vector<float>& data)
 
 void Tensor::fillRandom() {
     for (auto& val : data_) {
-        val = static_cast<float>(rand()) / RAND_MAX;
+        val = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
     }
 }
 
