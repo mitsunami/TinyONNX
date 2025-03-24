@@ -17,8 +17,12 @@ include_directories(
 # ONNX submodule integration
 set(ONNX_USE_PROTOBUF_SHARED_LIBS ON CACHE BOOL "" FORCE)
 add_subdirectory(third_party/onnx)
-
 find_package(Protobuf REQUIRED)
+
+set(OpenMP_CXX_FLAGS "-fopenmp")
+set(OpenMP_CXX_LIB_NAMES "omp")
+set(OpenMP_omp_LIBRARY omp)
+find_package(OpenMP REQUIRED)
 
 # Create TinyONNX core as a static library
 add_library(TinyONNX_lib STATIC
@@ -44,6 +48,7 @@ endif()
 target_link_libraries(TinyONNX_lib
     onnx_proto
     protobuf::libprotobuf
+    OpenMP::OpenMP_CXX
 )
 
 # Main executable (now uses library)

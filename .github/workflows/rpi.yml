@@ -13,7 +13,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake protobuf-compiler libprotobuf-dev time
+          sudo apt-get install -y clang cmake protobuf-compiler libprotobuf-dev time libomp-dev
 
       - name: Set up virtualenv and install NumPy
         run: |

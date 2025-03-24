@@ -1,6 +1,9 @@
 #include "tensor.h"
 #include <iostream>
 #include <cstring>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 Tensor conv2d_general(const Tensor& input, const Tensor& weights, const Tensor& bias,
                       const std::vector<int>& strides, const std::vector<int>& pads, const std::vector<int>& dilations, int groups) {
@@ -34,6 +37,7 @@ Tensor conv2d_general(const Tensor& input, const Tensor& weights, const Tensor& 
 
     for (int n = 0; n < N; ++n) {
         for (int g = 0; g < groups; ++g) {
+            #pragma omp parallel for
             for (int oc = 0; oc < group_oc; ++oc) {
                 int oc_index = g * group_oc + oc;
                 for (int oh = 0; oh < OH; ++oh) {
@@ -89,6 +93,7 @@ Tensor conv2d_pointwise(const Tensor& input, const Tensor& weights, const Tensor
     Tensor output({N, OC, OH, OW});
 
     for (int n = 0; n < N; ++n) {
+        #pragma omp parallel for
         for (int oc = 0; oc < OC; ++oc) {
             for (int oh = 0; oh < OH; ++oh) {
                 for (int ow = 0; ow < OW; ++ow) {
@@ -145,6 +150,7 @@ Tensor conv2d_depthwise(const Tensor& input, const Tensor& weights, const Tensor
     Tensor output({N, C, OH, OW});
 
     for (int n = 0; n < N; ++n) {
+        #pragma omp parallel for
         for (int c = 0; c < C; ++c) {
             for (int oh = 0; oh < OH; ++oh) {
                 for (int ow = 0; ow < OW; ++ow) {
