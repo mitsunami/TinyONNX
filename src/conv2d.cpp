@@ -26,6 +26,10 @@ Tensor conv2d_general(const Tensor& input, const Tensor& weights, const Tensor& 
     const int OH = (IH + 2 * PH - DH * (KH - 1) - 1) / SH + 1;
     const int OW = (IW + 2 * PW - DW * (KW - 1) - 1) / SW + 1;
 
+    const int in_c_stride = IH * IW;
+    const int out_c_stride = OH * OW;
+    const int w_c_stride = KH * KW;
+
     Tensor output({N, OC, OH, OW});
 
     for (int n = 0; n < N; ++n) {
@@ -42,15 +46,15 @@ Tensor conv2d_general(const Tensor& input, const Tensor& weights, const Tensor& 
                                     int ih = oh * SH - PH + kh * DH;
                                     int iw = ow * SW - PW + kw * DW;
                                     if (ih >= 0 && ih < IH && iw >= 0 && iw < IW) {
-                                        int ii = ((n * IC + ic_index) * IH + ih) * IW + iw;
-                                        int wi = ((oc_index * group_ic + ic) * KH + kh) * KW + kw;
-                                        sum += input.data()[ii] * weights.data()[wi];
+                                        int in_idx = n * IC * in_c_stride + ic_index * in_c_stride + ih * IW + iw;
+                                        int w_idx = oc_index * group_ic * w_c_stride + ic * w_c_stride + kh * KW + kw;
+                                        sum += input.data()[in_idx] * weights.data()[w_idx];
                                     }
                                 }
                             }
                         }
-                        int oi = ((n * OC + oc_index) * OH + oh) * OW + ow;
-                        output.data()[oi] = sum + bias.data()[oc_index];
+                        int out_idx = n * OC * out_c_stride + oc_index * out_c_stride + oh * OW + ow;
+                        output.data()[out_idx] = sum + bias.data()[oc_index];
                     }
                 }
             }
@@ -79,6 +83,9 @@ Tensor conv2d_pointwise(const Tensor& input, const Tensor& weights, const Tensor
     const int OH = (IH + 2 * PH - KH) / SH + 1;
     const int OW = (IW + 2 * PW - KW) / SW + 1;
 
+    const int in_c_stride = IH * IW;
+    const int out_c_stride = OH * OW;
+
     Tensor output({N, OC, OH, OW});
 
     for (int n = 0; n < N; ++n) {
@@ -86,17 +93,21 @@ Tensor conv2d_pointwise(const Tensor& input, const Tensor& weights, const Tensor
             for (int oh = 0; oh < OH; ++oh) {
                 for (int ow = 0; ow < OW; ++ow) {
                     float sum = 0.0f;
-                    for (int ic = 0; ic < IC; ++ic) {
-                        int ih = oh * SH - PH;
-                        int iw = ow * SW - PW;
-                        if (ih >= 0 && ih < IH && iw >= 0 && iw < IW) {
-                            int ii = ((n * IC + ic) * IH + ih) * IW + iw;
-                            int wi = ((oc * IC + ic) * KH + 0) * KW + 0;
-                            sum += input.data()[ii] * weights.data()[wi];
+                    for (int ic = 0; ic < IC; ic+=4) {
+                        float acc = 0.0f;
+                        for (int j = 0; j < 4 && (ic + j) < IC; ++j) {
+                            int ih = oh * SH - PH;
+                            int iw = ow * SW - PW;
+                            if (ih >= 0 && ih < IH && iw >= 0 && iw < IW) {
+                                int in_idx = n * IC * in_c_stride + (ic + j) * in_c_stride + ih * IW + iw;
+                                int w_idx = oc * IC + ic + j;
+                                sum += input.data()[in_idx] * weights.data()[w_idx];
+                            }
                         }
+                        sum += acc;
                     }
-                    int oi = ((n * OC + oc) * OH + oh) * OW + ow;
-                    output.data()[oi] = sum + bias.data()[oc];
+                    int out_idx = n * OC * out_c_stride + oc * out_c_stride + oh * OW + ow;
+                    output.data()[out_idx] = sum + bias.data()[oc];
                 }
             }
         }
@@ -127,6 +138,10 @@ Tensor conv2d_depthwise(const Tensor& input, const Tensor& weights, const Tensor
     const int OH = (IH + 2 * PH - DH * (KH - 1) - 1) / SH + 1;
     const int OW = (IW + 2 * PW - DW * (KW - 1) - 1) / SW + 1;
 
+    const int in_c_stride = IH * IW;
+    const int out_c_stride = OH * OW;
+    const int w_c_stride = KH * KW;
+
     Tensor output({N, C, OH, OW});
 
     for (int n = 0; n < N; ++n) {
@@ -139,14 +154,14 @@ Tensor conv2d_depthwise(const Tensor& input, const Tensor& weights, const Tensor
                             int ih = oh * SH - PH + kh * DH;
                             int iw = ow * SW - PW + kw * DW;
                             if (ih >= 0 && ih < IH && iw >= 0 && iw < IW) {
-                                int ii = ((n * C + c) * IH + ih) * IW + iw;
-                                int wi = ((c * 1 + 0) * KH + kh) * KW + kw;
-                                sum += input.data()[ii] * weights.data()[wi];
+                                int in_idx = n * C * in_c_stride + c * in_c_stride + ih * IW + iw;
+                                int w_idx = c * w_c_stride + kh * KW + kw;
+                                sum += input.data()[in_idx] * weights.data()[w_idx];
                             }
                         }
                     }
-                    int oi = ((n * C + c) * OH + oh) * OW + ow;
-                    output.data()[oi] = sum + bias.data()[c];
+                    int out_idx = n * C * out_c_stride + c * out_c_stride + oh * OW + ow;
+                    output.data()[out_idx] = sum + bias.data()[c];
                 }
             }
         }
