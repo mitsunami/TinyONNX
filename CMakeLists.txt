@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.16)
 project(TinyONNX LANGUAGES CXX)
 
 # Explicitly force Clang compiler
-set(CMAKE_CXX_COMPILER "/usr/bin/clang++" CACHE STRING "C++ compiler" FORCE)
-set(CMAKE_C_COMPILER "/usr/bin/clang" CACHE STRING "C compiler" FORCE)
+set(CMAKE_CXX_COMPILER "/usr/bin/clang++-14" CACHE STRING "C++ compiler" FORCE)
+set(CMAKE_C_COMPILER "/usr/bin/clang-14" CACHE STRING "C compiler" FORCE)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -17,8 +17,12 @@ include_directories(
 # ONNX submodule integration
 set(ONNX_USE_PROTOBUF_SHARED_LIBS ON CACHE BOOL "" FORCE)
 add_subdirectory(third_party/onnx)
-
 find_package(Protobuf REQUIRED)
+
+set(OpenMP_CXX_FLAGS "-fopenmp")
+set(OpenMP_CXX_LIB_NAMES "omp")
+set(OpenMP_omp_LIBRARY /usr/lib/llvm-14/lib/libomp.so)
+find_package(OpenMP REQUIRED)
 
 # Create TinyONNX core as a static library
 add_library(TinyONNX_lib STATIC
@@ -26,6 +30,7 @@ add_library(TinyONNX_lib STATIC
     src/execution_engine.cpp
     src/tensor.cpp
     src/operators.cpp
+    src/conv2d.cpp
     src/onnx_utils.cpp
     src/graph_utils.cpp
 )
@@ -43,6 +48,7 @@ endif()
 target_link_libraries(TinyONNX_lib
     onnx_proto
     protobuf::libprotobuf
+    OpenMP::OpenMP_CXX
 )
 
 # Main executable (now uses library)
@@ -94,6 +100,7 @@ add_executable(TinyONNX_benchmarks
     benchmarks/benchmark_main.cpp
     benchmarks/simple_model_bench.cpp
     benchmarks/matmul_bench.cpp
+    benchmarks/conv2d_bench.cpp
 )
 target_link_libraries(TinyONNX_benchmarks
     benchmark

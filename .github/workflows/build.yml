@@ -15,8 +15,18 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y clang cmake protobuf-compiler libprotobuf-dev
-    
+        sudo apt-get install -y clang-14 cmake protobuf-compiler libprotobuf-dev libomp-14-dev
+
+    - name: Verify omp.h and OpenMP works
+      run: |
+        cat <<EOF > test.cpp
+        #include <omp.h>
+        int main() { return 0; }
+        EOF
+
+        clang++-14 -fopenmp test.cpp -o test_openmp
+        ./test_openmp
+
     - name: Initialize Submodules
       run: |
         git submodule update --init --recursive
