@@ -26,6 +26,7 @@ add_library(TinyONNX_lib STATIC
     src/execution_engine.cpp
     src/tensor.cpp
     src/operators.cpp
+    src/conv2d.cpp
     src/onnx_utils.cpp
     src/graph_utils.cpp
 )
