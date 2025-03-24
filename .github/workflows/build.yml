@@ -17,10 +17,10 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y clang-14 cmake protobuf-compiler libprotobuf-dev libomp-14-dev
 
-    - name: Check Clang Version and OpenMP
+    - name: Verify omp.h and OpenMP works
       run: |
-        clang-14 --version
-        clang++-14 -v -fopenmp -x c++ - -o /dev/null <<< ""
+        echo '#include <omp.h>\nint main() { return 0; }' > test.cpp
+        clang++-14 -fopenmp test.cpp -o test_openmp && ./test_openmp
 
     - name: Initialize Submodules
       run: |
