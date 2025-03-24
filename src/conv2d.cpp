@@ -36,8 +36,8 @@ Tensor conv2d_general(const Tensor& input, const Tensor& weights, const Tensor& 
     Tensor output({N, OC, OH, OW});
 
     for (int n = 0; n < N; ++n) {
+        #pragma omp parallel for collapse(2)
         for (int g = 0; g < groups; ++g) {
-            #pragma omp parallel for
             for (int oc = 0; oc < group_oc; ++oc) {
                 int oc_index = g * group_oc + oc;
                 for (int oh = 0; oh < OH; ++oh) {
@@ -57,8 +57,9 @@ Tensor conv2d_general(const Tensor& input, const Tensor& weights, const Tensor& 
                                 }
                             }
                         }
+                        float result = sum;
                         int out_idx = n * OC * out_c_stride + oc_index * out_c_stride + oh * OW + ow;
-                        output.data()[out_idx] = sum + bias.data()[oc_index];
+                        output.data()[out_idx] = result + bias.data()[oc_index];
                     }
                 }
             }
@@ -99,7 +100,6 @@ Tensor conv2d_pointwise(const Tensor& input, const Tensor& weights, const Tensor
                 for (int ow = 0; ow < OW; ++ow) {
                     float sum = 0.0f;
                     for (int ic = 0; ic < IC; ic+=4) {
-                        float acc = 0.0f;
                         for (int j = 0; j < 4 && (ic + j) < IC; ++j) {
                             int ih = oh * SH - PH;
                             int iw = ow * SW - PW;
@@ -109,10 +109,10 @@ Tensor conv2d_pointwise(const Tensor& input, const Tensor& weights, const Tensor
                                 sum += input.data()[in_idx] * weights.data()[w_idx];
                             }
                         }
-                        sum += acc;
                     }
+                    float result = sum;
                     int out_idx = n * OC * out_c_stride + oc * out_c_stride + oh * OW + ow;
-                    output.data()[out_idx] = sum + bias.data()[oc];
+                    output.data()[out_idx] = result + bias.data()[oc];
                 }
             }
         }
@@ -166,8 +166,9 @@ Tensor conv2d_depthwise(const Tensor& input, const Tensor& weights, const Tensor
                             }
                         }
                     }
+                    float result = sum;
                     int out_idx = n * C * out_c_stride + c * out_c_stride + oh * OW + ow;
-                    output.data()[out_idx] = sum + bias.data()[c];
+                    output.data()[out_idx] = result + bias.data()[c];
                 }
             }
         }
