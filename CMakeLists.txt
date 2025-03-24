@@ -21,7 +21,7 @@ find_package(Protobuf REQUIRED)
 
 set(OpenMP_CXX_FLAGS "-fopenmp")
 set(OpenMP_CXX_LIB_NAMES "omp")
-set(OpenMP_omp_LIBRARY omp)
+set(OpenMP_omp_LIBRARY /usr/lib/llvm-14/lib/libomp.so)
 find_package(OpenMP REQUIRED)
 
 # Create TinyONNX core as a static library
