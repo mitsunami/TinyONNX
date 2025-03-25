@@ -16,9 +16,20 @@ include_directories(
 
 # ONNX
 find_package(Protobuf REQUIRED)
-add_library(onnx_proto STATIC
-    src/onnx.pb.cc
+set(ONNX_PROTO ${CMAKE_CURRENT_SOURCE_DIR}/onnx/onnx.proto)
+set(GENERATED_SRC ${CMAKE_CURRENT_BINARY_DIR}/onnx.pb.cc)
+set(GENERATED_HDR ${CMAKE_CURRENT_BINARY_DIR}/onnx.pb.h)
+add_custom_command(
+  OUTPUT ${GENERATED_SRC} ${GENERATED_HDR}
+  COMMAND ${Protobuf_PROTOC_EXECUTABLE}
+          --proto_path=${CMAKE_CURRENT_SOURCE_DIR}/onnx
+          --cpp_out=${CMAKE_CURRENT_BINARY_DIR}
+          ${ONNX_PROTO}
+  DEPENDS ${ONNX_PROTO}
+  COMMENT "Generating onnx.pb.h and onnx.pb.cc with system protoc"
 )
+add_library(onnx_proto STATIC ${GENERATED_SRC})
+target_include_directories(onnx_proto PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 set(OpenMP_CXX_FLAGS "-fopenmp")
 set(OpenMP_CXX_LIB_NAMES "omp")
@@ -35,6 +46,7 @@ add_library(TinyONNX_lib STATIC
     src/onnx_utils.cpp
     src/graph_utils.cpp
 )
+target_include_directories(TinyONNX_lib PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 option(ENABLE_TIMING "Enable profiling timers" OFF)
 if (ENABLE_TIMING)

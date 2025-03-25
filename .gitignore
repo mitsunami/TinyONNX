@@ -17,6 +17,10 @@ CMakeFiles/
 cmake_install.cmake
 Makefile
 
+# Ignore generated protobuf files
+*.pb.h
+*.pb.cc
+
 # Prerequisites
 *.d
 
