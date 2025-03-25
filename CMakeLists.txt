@@ -8,6 +8,8 @@ set(CMAKE_C_COMPILER "/usr/bin/clang-14" CACHE STRING "C compiler" FORCE)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+include(FetchContent)
+
 include_directories(
     include
 )
@@ -63,7 +65,16 @@ endif()
 
 
 # GoogleTest
-add_subdirectory(third_party/googletest)
+FetchContent_Declare(
+  googletest
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG main
+)
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE) # optional for MSVC
+FetchContent_MakeAvailable(googletest)
+
 enable_testing()
 
 add_executable(TinyONNX_tests
@@ -92,8 +103,16 @@ gtest_discover_tests(TinyONNX_tests)
 
 
 # Benchmarks
-set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "")
-add_subdirectory(third_party/benchmark)
+FetchContent_Declare(
+  benchmark
+  GIT_REPOSITORY https://github.com/google/benchmark.git
+  GIT_TAG main
+)
+
+set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+set(BENCHMARK_DOWNLOAD_DEPENDENCIES OFF CACHE BOOL "" FORCE)
+
+FetchContent_MakeAvailable(benchmark)
 
 add_executable(TinyONNX_benchmarks
     benchmarks/benchmark_main.cpp
@@ -102,6 +121,6 @@ add_executable(TinyONNX_benchmarks
     benchmarks/conv2d_bench.cpp
 )
 target_link_libraries(TinyONNX_benchmarks
-    benchmark
+    benchmark::benchmark
     TinyONNX_lib
 )
