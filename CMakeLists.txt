@@ -10,14 +10,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include_directories(
     include
-    ${CMAKE_SOURCE_DIR}/third_party/onnx
-    ${CMAKE_SOURCE_DIR}/third_party/onnx/build
 )
 
-# ONNX submodule integration
-set(ONNX_USE_PROTOBUF_SHARED_LIBS ON CACHE BOOL "" FORCE)
-add_subdirectory(third_party/onnx)
+# ONNX
 find_package(Protobuf REQUIRED)
+add_library(onnx_proto STATIC
+    src/onnx.pb.cc
+)
 
 set(OpenMP_CXX_FLAGS "-fopenmp")
 set(OpenMP_CXX_LIB_NAMES "omp")
