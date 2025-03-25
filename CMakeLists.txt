@@ -8,16 +8,28 @@ set(CMAKE_C_COMPILER "/usr/bin/clang-14" CACHE STRING "C compiler" FORCE)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+include(FetchContent)
+
 include_directories(
     include
-    ${CMAKE_SOURCE_DIR}/third_party/onnx
-    ${CMAKE_SOURCE_DIR}/third_party/onnx/build
 )
 
-# ONNX submodule integration
-set(ONNX_USE_PROTOBUF_SHARED_LIBS ON CACHE BOOL "" FORCE)
-add_subdirectory(third_party/onnx)
+# ONNX
 find_package(Protobuf REQUIRED)
+set(ONNX_PROTO ${CMAKE_CURRENT_SOURCE_DIR}/onnx/onnx.proto)
+set(GENERATED_SRC ${CMAKE_CURRENT_BINARY_DIR}/onnx.pb.cc)
+set(GENERATED_HDR ${CMAKE_CURRENT_BINARY_DIR}/onnx.pb.h)
+add_custom_command(
+  OUTPUT ${GENERATED_SRC} ${GENERATED_HDR}
+  COMMAND ${Protobuf_PROTOC_EXECUTABLE}
+          --proto_path=${CMAKE_CURRENT_SOURCE_DIR}/onnx
+          --cpp_out=${CMAKE_CURRENT_BINARY_DIR}
+          ${ONNX_PROTO}
+  DEPENDS ${ONNX_PROTO}
+  COMMENT "Generating onnx.pb.h and onnx.pb.cc with system protoc"
+)
+add_library(onnx_proto STATIC ${GENERATED_SRC})
+target_include_directories(onnx_proto PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 set(OpenMP_CXX_FLAGS "-fopenmp")
 set(OpenMP_CXX_LIB_NAMES "omp")
@@ -34,6 +46,7 @@ add_library(TinyONNX_lib STATIC
     src/onnx_utils.cpp
     src/graph_utils.cpp
 )
+target_include_directories(TinyONNX_lib PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 option(ENABLE_TIMING "Enable profiling timers" OFF)
 if (ENABLE_TIMING)
@@ -64,7 +77,16 @@ endif()
 
 
 # GoogleTest
-add_subdirectory(third_party/googletest)
+FetchContent_Declare(
+  googletest
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG main
+)
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE) # optional for MSVC
+FetchContent_MakeAvailable(googletest)
+
 enable_testing()
 
 add_executable(TinyONNX_tests
@@ -93,8 +115,16 @@ gtest_discover_tests(TinyONNX_tests)
 
 
 # Benchmarks
-set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "")
-add_subdirectory(third_party/benchmark)
+FetchContent_Declare(
+  benchmark
+  GIT_REPOSITORY https://github.com/google/benchmark.git
+  GIT_TAG main
+)
+
+set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+set(BENCHMARK_DOWNLOAD_DEPENDENCIES OFF CACHE BOOL "" FORCE)
+
+FetchContent_MakeAvailable(benchmark)
 
 add_executable(TinyONNX_benchmarks
     benchmarks/benchmark_main.cpp
@@ -103,6 +133,6 @@ add_executable(TinyONNX_benchmarks
     benchmarks/conv2d_bench.cpp
 )
 target_link_libraries(TinyONNX_benchmarks
-    benchmark
+    benchmark::benchmark
     TinyONNX_lib
 )

@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include <onnx/onnx_pb.h>
+#include "onnx.pb.h"
 #include "graph.h"
 
 class ONNXModel {

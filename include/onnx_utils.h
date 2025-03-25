@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include <onnx/onnx_pb.h>
+#include "onnx.pb.h"
 #include "graph.h"
 
 float getFloatAttr(const GraphNode* node, const std::string& name, float default_value);

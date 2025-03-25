@@ -17,9 +17,6 @@ CMakeFiles/
 cmake_install.cmake
 Makefile
 
-# Ignore third-party generated files
-third_party/onnx/build/
-
 # Ignore generated protobuf files
 *.pb.h
 *.pb.cc

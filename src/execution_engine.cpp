@@ -3,7 +3,7 @@
 #include "onnx_utils.h"
 #include "graph_utils.h"
 #include "utils/timer.h"
-#include <onnx/onnx_pb.h>
+#include "onnx.pb.h"
 #include <iostream>
 
 ExecutionEngine::ExecutionEngine() {}

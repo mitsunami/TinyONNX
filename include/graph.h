@@ -2,7 +2,7 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
-#include <onnx/onnx_pb.h>
+#include "onnx.pb.h"
 #include "tensor.h"
 
 struct GraphNode {
