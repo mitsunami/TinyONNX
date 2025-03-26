@@ -10,9 +10,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(FetchContent)
 
-include_directories(
-    include
+# XNNPACK
+FetchContent_Declare(
+  XNNPACK
+  GIT_REPOSITORY https://github.com/google/XNNPACK.git
+  GIT_TAG master
 )
+set(XNNPACK_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(XNNPACK_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
+set(XNNPACK_ENABLE_ASSEMBLY OFF CACHE BOOL "" FORCE)
+set(XNNPACK_ENABLE_ARM ON CACHE BOOL "" FORCE)
+set(XNNPACK_ENABLE_X86 ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(XNNPACK)
 
 # ONNX
 find_package(Protobuf REQUIRED)
@@ -47,6 +56,9 @@ add_library(TinyONNX_lib STATIC
     src/graph_utils.cpp
 )
 target_include_directories(TinyONNX_lib PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+include_directories(
+    include
+)
 
 option(ENABLE_TIMING "Enable profiling timers" OFF)
 if (ENABLE_TIMING)
@@ -61,14 +73,15 @@ endif()
 target_link_libraries(TinyONNX_lib
     onnx_proto
     protobuf::libprotobuf
+    XNNPACK
+    pthreadpool
     OpenMP::OpenMP_CXX
 )
 
-# Main executable (now uses library)
+# Main executable
 add_executable(TinyONNX src/main.cpp)
 target_link_libraries(TinyONNX TinyONNX_lib)
 
-target_compile_definitions(TinyONNX PRIVATE ONNX_ML=1)
 target_compile_options(TinyONNX PRIVATE -Wall -Wextra -O3)
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
