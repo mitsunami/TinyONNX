@@ -14,7 +14,7 @@ include(FetchContent)
 FetchContent_Declare(
   XNNPACK
   GIT_REPOSITORY https://github.com/google/XNNPACK.git
-  GIT_TAG master
+  GIT_TAG test_647082366
 )
 set(XNNPACK_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(XNNPACK_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)

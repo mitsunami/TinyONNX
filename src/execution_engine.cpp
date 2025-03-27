@@ -1,4 +1,5 @@
 #include "execution_engine.h"
+#include <xnnpack.h>
 #include "operators.h"
 #include "onnx_utils.h"
 #include "graph_utils.h"
@@ -6,11 +7,16 @@
 #include "onnx.pb.h"
 #include <iostream>
 
-ExecutionEngine::ExecutionEngine() : pthreadpool_(nullptr), use_xnnpack_(true) {
+ExecutionEngine::ExecutionEngine() : pthreadpool_(nullptr) {
+    xnn_status status = xnn_initialize(nullptr);
+    if (status != xnn_status_success) {
+        throw std::runtime_error("XNNPACK initialization failed");
+    }
     pthreadpool_ = pthreadpool_create(0); // Use all hardware threads
 }
 
 ExecutionEngine::~ExecutionEngine() {
+    xnn_deinitialize();
     if (pthreadpool_) pthreadpool_destroy(pthreadpool_);
 }
 

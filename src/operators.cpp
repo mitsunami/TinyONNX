@@ -8,8 +8,8 @@
 
 Tensor Operators::conv2d(const Tensor& input, const Tensor& weights, const Tensor& bias, 
                          const std::vector<int> kernel_shape, const std::vector<int>& strides, const std::vector<int>& pads, const std::vector<int>& dilations, int groups, pthreadpool_t threadpool) {
-    assert(input.shape().size() == 4);   // [N, C, H, W]
-    assert(weights.shape().size() == 4); // [M, C/groups, kH, kW]
+    assert(input.shape().size() == 4);   // [N, H, W, C]
+    assert(weights.shape().size() == 4); // [M, kH, kW, C/groups]
     assert(bias.shape().size() == 1);    // [M]
 
     const int N = input.shape()[0];
@@ -28,7 +28,7 @@ Tensor Operators::conv2d(const Tensor& input, const Tensor& weights, const Tenso
 
     xnn_operator_t conv_op = nullptr;
     xnn_status status = xnn_create_convolution2d_nhwc_f32(
-        pads[0], pads[1], pads[2], pads[3],
+        pads[0], pads[1], pads[2], pads[3], // top, right, bottom, left
         kernel_shape[0], kernel_shape[1],
         strides[0], strides[1],
         dilations[0], dilations[1],
@@ -40,23 +40,53 @@ Tensor Operators::conv2d(const Tensor& input, const Tensor& weights, const Tenso
         -std::numeric_limits<float>::infinity(),
         +std::numeric_limits<float>::infinity(),
         0,
-        nullptr,
-        nullptr,
-        &conv_op);
-
+        nullptr, // code_cache
+        nullptr, // weights_cache
+        &conv_op
+    );
     if (status != xnn_status_success) {
+        std::cout << status << std::endl;
         throw std::runtime_error("Failed to create XNNPACK convolution operator");
     }
 
-    xnn_setup_convolution2d_nhwc_f32(
+    size_t workspace_size = 0;
+    size_t workspace_alignment = 0;
+    status = xnn_reshape_convolution2d_nhwc_f32(
         conv_op,
-        nullptr,
+        1, //batch_size
+        IH, IW,
+        &workspace_size, &workspace_alignment,
+        nullptr, // output_height_out
+        nullptr, // output_width_out
+        threadpool
+    );
+    if (status != xnn_status_success) {
+        throw std::runtime_error("Failed to reshape XNNPACK convolution operator");
+    }
+
+    std::vector<char> workspace(workspace_size);
+    status = xnn_setup_convolution2d_nhwc_f32(
+        conv_op,
+        workspace.data(),
         input.data().data(),
         output.data().data()
-        );
+    );
+    if (status != xnn_status_success) {
+        std::cout << status << std::endl;
+        throw std::runtime_error("Failed to set up XNNPACK convolution operator");
+    }
 
-    xnn_run_operator(conv_op, threadpool);
-    xnn_delete_operator(conv_op);
+    status = xnn_run_operator(conv_op, threadpool);
+    if (status != xnn_status_success) {
+        throw std::runtime_error("Failed to run XNNPACK convolution operator");
+    }
+
+    status = xnn_delete_operator(conv_op);
+    if (status != xnn_status_success) {
+        throw std::runtime_error("Failed to delete XNNPACK convolution operator");
+    }
+
+    conv_op = nullptr;
 
     return output;
 
