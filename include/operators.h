@@ -1,9 +1,10 @@
 #pragma once
 #include "tensor.h"
+#include <pthreadpool.h>
 
 class Operators {
 public:
-    Tensor conv2d(const Tensor& input, const Tensor& weights, const Tensor& bias, const std::vector<int>& strides, const std::vector<int>& pads, const std::vector<int>& dilations, int groups);
+    Tensor conv2d(const Tensor& input, const Tensor& weights, const Tensor& bias, const std::vector<int> kernel_shape, const std::vector<int>& strides, const std::vector<int>& pads, const std::vector<int>& dilations, int groups, pthreadpool_t threadpool);
     Tensor matmul(const Tensor& a, const Tensor& b);
     Tensor gemm(const Tensor& a, const Tensor& b, const Tensor& c, float alpha, float beta);
     Tensor gemm_transB(const Tensor& a, const Tensor& b, const Tensor& c, float alpha, float beta);

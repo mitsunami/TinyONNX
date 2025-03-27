@@ -6,7 +6,13 @@
 #include "onnx.pb.h"
 #include <iostream>
 
-ExecutionEngine::ExecutionEngine() {}
+ExecutionEngine::ExecutionEngine() : pthreadpool_(nullptr), use_xnnpack_(true) {
+    pthreadpool_ = pthreadpool_create(0); // Use all hardware threads
+}
+
+ExecutionEngine::~ExecutionEngine() {
+    if (pthreadpool_) pthreadpool_destroy(pthreadpool_);
+}
 
 void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input) {
     graph.tensors["input"] = input;
@@ -27,6 +33,7 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
             auto& in = graph.tensors[node->inputs[0]];
             auto& weights = graph.tensors[node->inputs[1]];
             auto& bias = graph.tensors[node->inputs[2]];
+            std::vector<int> kernel_shape = getIntListAttr(node, "kernel_shape");
             std::vector<int> strides = getIntListAttr(node, "strides");
             std::vector<int> pads = getIntListAttr(node, "pads");
             std::vector<int> dilations = getIntListAttr(node, "dilations");
@@ -35,7 +42,7 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
             if (pads.empty()) pads = {0, 0, 0, 0};  // top, left, bottom, right
             if (dilations.empty()) dilations = {1, 1};
             graph.tensors[node->outputs[0]] = operators_.conv2d(
-                in, weights, bias, strides, pads, dilations, groups
+                in, weights, bias, kernel_shape, strides, pads, dilations, groups, pthreadpool_
             );
         }
         else if (node->op_type == "MatMul") {

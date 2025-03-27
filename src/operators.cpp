@@ -1,15 +1,66 @@
 #include "operators.h"
+#include <xnnpack.h>
+#include <pthreadpool.h>
 #include <cmath>
 #include <cassert>
 #include <algorithm>
 #include "conv2d.cpp"
 
 Tensor Operators::conv2d(const Tensor& input, const Tensor& weights, const Tensor& bias, 
-                         const std::vector<int>& strides, const std::vector<int>& pads, const std::vector<int>& dilations, int groups) {
+                         const std::vector<int> kernel_shape, const std::vector<int>& strides, const std::vector<int>& pads, const std::vector<int>& dilations, int groups, pthreadpool_t threadpool) {
     assert(input.shape().size() == 4);   // [N, C, H, W]
     assert(weights.shape().size() == 4); // [M, C/groups, kH, kW]
     assert(bias.shape().size() == 1);    // [M]
 
+    const int N = input.shape()[0];
+    const int IH = input.shape()[1];
+    const int IW = input.shape()[2];
+    const int IC = input.shape()[3];
+
+    const int OC = weights.shape()[0];
+    const int KH = weights.shape()[1];
+    const int KW = weights.shape()[2];
+
+    const int OH = (IH + 2 * pads[0] - KH) / strides[0] + 1;
+    const int OW = (IW + 2 * pads[1] - KW) / strides[1] + 1;
+
+    Tensor output({N, OH, OW, OC});
+
+    xnn_operator_t conv_op = nullptr;
+    xnn_status status = xnn_create_convolution2d_nhwc_f32(
+        pads[0], pads[1], pads[2], pads[3],
+        kernel_shape[0], kernel_shape[1],
+        strides[0], strides[1],
+        dilations[0], dilations[1],
+        groups,
+        IC / groups, OC / groups,
+        IC, OC,
+        weights.data().data(),
+        bias.data().data(),
+        -std::numeric_limits<float>::infinity(),
+        +std::numeric_limits<float>::infinity(),
+        0,
+        nullptr,
+        nullptr,
+        &conv_op);
+
+    if (status != xnn_status_success) {
+        throw std::runtime_error("Failed to create XNNPACK convolution operator");
+    }
+
+    xnn_setup_convolution2d_nhwc_f32(
+        conv_op,
+        nullptr,
+        input.data().data(),
+        output.data().data()
+        );
+
+    xnn_run_operator(conv_op, threadpool);
+    xnn_delete_operator(conv_op);
+
+    return output;
+
+    #if 0
     const int KH = weights.shape()[2];
     const int KW = weights.shape()[3];
 
@@ -29,6 +80,7 @@ Tensor Operators::conv2d(const Tensor& input, const Tensor& weights, const Tenso
 
     // Fallback to general
     return conv2d_general(input, weights, bias, strides, pads, dilations, groups);
+    #endif
 }
 
 Tensor Operators::matmul(const Tensor& a, const Tensor& b) {
