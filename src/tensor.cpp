@@ -29,6 +29,34 @@ void Tensor::fillRandom() {
     }
 }
 
+// Transpose in-place: PyTorch-style weights [OC, IC, KH, KW] → XNNPACK-style [OC, KH, KW, IC]
+void Tensor::reorderOIHWtoOHWI() {
+    if (shape_.size() != 4)
+        throw std::invalid_argument("Weight tensor must be 4D");
+
+    int OC = shape_[0];
+    int IC = shape_[1];
+    int KH = shape_[2];
+    int KW = shape_[3];
+
+    std::vector<float> new_data(OC * KH * KW * IC);
+
+    for (int oc = 0; oc < OC; ++oc) {
+        for (int kh = 0; kh < KH; ++kh) {
+            for (int kw = 0; kw < KW; ++kw) {
+                for (int ic = 0; ic < IC; ++ic) {
+                    int src_index = (((oc * IC + ic) * KH + kh) * KW) + kw;
+                    int dst_index = (((oc * KH + kh) * KW + kw) * IC) + ic;
+                    new_data[dst_index] = data_[src_index];
+                }
+            }
+        }
+    }
+
+    data_ = std::move(new_data);
+    shape_ = {OC, KH, KW, IC};
+}
+
 void Tensor::print() const {
     std::cout << "Tensor shape: [";
     for (size_t i = 0; i < shape_.size(); ++i) {

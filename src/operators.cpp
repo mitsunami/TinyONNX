@@ -12,7 +12,6 @@ Tensor Operators::conv2d(const Tensor& input, const Tensor& weights, const Tenso
     assert(weights.shape().size() == 4); // [M, kH, kW, C/groups]
     assert(bias.shape().size() == 1);    // [M]
 
-    #if 1
     const int N = input.shape()[0];
     const int IH = input.shape()[1];
     const int IW = input.shape()[2];
@@ -93,28 +92,6 @@ Tensor Operators::conv2d(const Tensor& input, const Tensor& weights, const Tenso
     conv_op = nullptr;
 
     return output;
-
-    #else
-    const int KH = weights.shape()[2];
-    const int KW = weights.shape()[3];
-
-    // Fast path: 1x1 conv (pointwise)
-    if (KH == 1 && KW == 1 &&
-        strides[0] == 1 && strides[1] == 1 &&
-        dilations[0] == 1 && dilations[1] == 1 &&
-        pads[0] == 0 && pads[1] == 0 &&
-        groups == 1) {
-        return conv2d_pointwise(input, weights, bias, strides, 0, 1);
-    }
-
-    // Fast path: depthwise conv (IC == OC == groups)
-    if (groups == input.shape()[1] && groups == weights.shape()[0]) {
-        return conv2d_depthwise(input, weights, bias, strides, pads, dilations);
-    }
-
-    // Fallback to general
-    return conv2d_general(input, weights, bias, strides, pads, dilations, groups);
-    #endif
 }
 
 Tensor Operators::matmul(const Tensor& a, const Tensor& b) {

@@ -32,7 +32,6 @@ int main(int argc, char* argv[]) {
     }
 
     ComputationGraph graph = model.parseGraph();
-
     Tensor input = loadNumpyInput(argv[2]);
 
     Timer total_timer("Total Graph Execution");

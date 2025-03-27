@@ -43,6 +43,12 @@ ComputationGraph ONNXModel::parseGraph() {
         for (const auto& attr : node_proto.attribute()) {
             node.attributes.push_back(attr);
         }
+
+        if(node.op_type == "Conv") {
+            // Transpose in-place conv2d weights
+            graph.tensors[node.inputs[1]].reorderOIHWtoOHWI();
+        }
+
         graph.nodes.push_back(node);
     }
 

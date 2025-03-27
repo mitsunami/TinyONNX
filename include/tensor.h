@@ -8,6 +8,7 @@ public:
     Tensor(const std::vector<int>& shape, const std::vector<float>& data);
 
     void fillRandom();
+    void reorderOIHWtoOHWI();
     void print() const;
 
     std::vector<int> shape() const { return shape_; }
