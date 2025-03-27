@@ -1,4 +1,5 @@
 #include <benchmark/benchmark.h>
+#include <xnnpack.h>
 #include "tensor.h"
 #include "operators.h"
 
@@ -11,9 +12,9 @@ static void BM_Conv2D(benchmark::State& state) {
     int stride = state.range(4);
     int pad    = state.range(5);
     int dilation = state.range(6);
-
-    Tensor input({N, IC, H, H});
-    Tensor weights({OC, IC, K, K});
+    int groups = 1;
+    Tensor input({N, H, H, IC});
+    Tensor weights({OC, K, K, IC/groups});
     Tensor bias({OC});
 
     input.fillRandom();
@@ -22,12 +23,27 @@ static void BM_Conv2D(benchmark::State& state) {
 
     Operators ops;
 
+    xnn_status status = xnn_initialize(nullptr);
+    pthreadpool_t pthreadpool_ = pthreadpool_create(0);
+
     for (auto _ : state) {
-        Tensor result = ops.conv2d(input, weights, bias, {stride, stride}, {pad, pad}, {dilation, dilation}, 1);
+        Tensor result = ops.conv2d(
+            input, weights, bias, 
+            {K, K}, 
+            {stride, stride}, 
+            {pad, pad}, 
+            {dilation, dilation}, 
+            groups,
+            pthreadpool_
+        );
         benchmark::DoNotOptimize(result);
     }
 
     state.SetItemsProcessed(int64_t(state.iterations()) * OC * H * H);
+
+    xnn_deinitialize();
+    if (pthreadpool_) pthreadpool_destroy(pthreadpool_);
+    
 }
 
 BENCHMARK(BM_Conv2D)

@@ -12,6 +12,7 @@ Tensor Operators::conv2d(const Tensor& input, const Tensor& weights, const Tenso
     assert(weights.shape().size() == 4); // [M, kH, kW, C/groups]
     assert(bias.shape().size() == 1);    // [M]
 
+    #if 1
     const int N = input.shape()[0];
     const int IH = input.shape()[1];
     const int IW = input.shape()[2];
@@ -24,8 +25,10 @@ Tensor Operators::conv2d(const Tensor& input, const Tensor& weights, const Tenso
     const int OH = (IH + 2 * pads[0] - KH) / strides[0] + 1;
     const int OW = (IW + 2 * pads[1] - KW) / strides[1] + 1;
 
+    // input.print();
+    // weights.print();
     Tensor output({N, OH, OW, OC});
-
+    // output.print();
     xnn_operator_t conv_op = nullptr;
     xnn_status status = xnn_create_convolution2d_nhwc_f32(
         pads[0], pads[1], pads[2], pads[3], // top, right, bottom, left
@@ -34,7 +37,8 @@ Tensor Operators::conv2d(const Tensor& input, const Tensor& weights, const Tenso
         dilations[0], dilations[1],
         groups,
         IC / groups, OC / groups,
-        IC, OC,
+        IC, // input_channel_stride
+        OC, // output_channel_stride
         weights.data().data(),
         bias.data().data(),
         -std::numeric_limits<float>::infinity(),
@@ -90,7 +94,7 @@ Tensor Operators::conv2d(const Tensor& input, const Tensor& weights, const Tenso
 
     return output;
 
-    #if 0
+    #else
     const int KH = weights.shape()[2];
     const int KW = weights.shape()[3];
 
