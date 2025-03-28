@@ -1,22 +1,22 @@
-#include "graph_utils.h"
+#include "graph.h"
 #include <unordered_map>
 #include <unordered_set>
 #include <queue>
 #include <iostream>
 
-std::vector<const GraphNode*> topologicalSort(const ComputationGraph& graph) {
+void ComputationGraph::topologicalSort() {
     std::unordered_set<std::string> available;
     std::unordered_map<const GraphNode*, int> dependency_count;
     std::unordered_map<std::string, std::vector<const GraphNode*>> tensor_consumers;
 
     // Add all tensors that are already in graph.tensors (initializers or input)
-    for (const auto& [name, _] : graph.tensors) {
+    for (const auto& [name, _] : tensors) {
         available.insert(name);
     }
     available.insert("input");  // TODO: common input name — may vary
 
     // Count dependencies and build reverse edge map
-    for (const auto& node : graph.nodes) {
+    for (const auto& node : nodes) {
         int count = 0;
         for (const auto& input : node.inputs) {
             if (!available.count(input)) {
@@ -28,10 +28,9 @@ std::vector<const GraphNode*> topologicalSort(const ComputationGraph& graph) {
     }
 
     std::queue<const GraphNode*> ready;
-    std::vector<const GraphNode*> sorted;
 
     // Enqueue nodes with no dependencies
-    for (const auto& node : graph.nodes) {
+    for (const auto& node : nodes) {
         if (dependency_count[&node] == 0) {
             ready.push(&node);
         }
@@ -40,7 +39,7 @@ std::vector<const GraphNode*> topologicalSort(const ComputationGraph& graph) {
     while (!ready.empty()) {
         const GraphNode* node = ready.front();
         ready.pop();
-        sorted.push_back(node);
+        sorted_nodes.push_back(node);
 
         for (const auto& output : node->outputs) {
             for (const auto* consumer : tensor_consumers[output]) {
@@ -51,36 +50,47 @@ std::vector<const GraphNode*> topologicalSort(const ComputationGraph& graph) {
         }
     }
 
-    printGraph(sorted);
 
-    if (sorted.size() != graph.nodes.size()) {
+    if (sorted_nodes.size() != nodes.size()) {
+        std::cout << "sorted size: " << sorted_nodes.size() << ", org size: " << nodes.size () << std::endl;
         throw std::runtime_error("Cycle detected or missing inputs in graph");
     }
 
-
-    return sorted;
 }
 
-void printGraph(const std::vector<const GraphNode*>& nodes) {
-    std::cout << "🔁 Graph Order:\n";
-    for (const auto* node : nodes) {
-        std::cout << "\033[1;32m- " << node->op_type << "\033[0m";
-        if (!node->outputs.empty()) {
-            std::cout << " : [" << node->inputs[0] << "] → [" << node->outputs[0] << "]";
-        }
-        std::cout << "\n";
-    }
-    std::cout << std::endl;
-}
-
-void printGraph(const std::vector<const GraphNode>& nodes) {
+void ComputationGraph::printNodes() {
     std::cout << "🔁 Graph Order:\n";
     for (const auto node : nodes) {
         std::cout << "\033[1;32m- " << node.op_type << "\033[0m";
-        if (!node.outputs.empty()) {
+        if (!node.inputs.empty() && !node.outputs.empty()) {
             std::cout << " : [" << node.inputs[0] << "] → [" << node.outputs[0] << "]";
+        }
+        else if (!node.outputs.empty()) {
+            std::cout << " :  → [" << node.outputs[0] << "]";
+        }
+        else if (!node.inputs.empty()) {
+            std::cout << " : [" << node.inputs[0] << "] → ";
         }
         std::cout << "\n";
     }
     std::cout << std::endl;
 }
+
+void ComputationGraph::printSortedNodes() {
+    std::cout << "🔁 Topological Node Execution Order:\n";
+    for (const auto* node : sorted_nodes) {
+        std::cout << "\033[1;32m- " << node->op_type << "\033[0m";
+        if (!node->inputs.empty() && !node->outputs.empty()) {
+            std::cout << " : [" << node->inputs[0] << "] → [" << node->outputs[0] << "]";
+        }
+        else if (!node->outputs.empty()) {
+            std::cout << " :  → [" << node->outputs[0] << "]";
+        }
+        else if (!node->inputs.empty()) {
+            std::cout << " : [" << node->inputs[0] << "] → ";
+        }
+        std::cout << "\n";
+    }
+    std::cout << std::endl;
+}
+

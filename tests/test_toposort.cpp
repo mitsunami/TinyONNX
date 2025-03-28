@@ -1,5 +1,4 @@
 #include <gtest/gtest.h>
-#include "graph_utils.h"
 #include "graph.h"
 #include <set>
 
@@ -34,12 +33,12 @@ TEST(GraphUtilsTest, TopologicalSortSimpleGraph) {
     // Intentionally shuffled
     graph.nodes = {nodeE, nodeD, nodeC, nodeB, nodeA};
 
-    auto sorted = topologicalSort(graph);
+    graph.topologicalSort();
 
-    ASSERT_EQ(sorted.size(), 5);
+    ASSERT_EQ(graph.sorted_nodes.size(), 5);
 
     std::vector<std::string> output_names;
-    for (const GraphNode* node : sorted) {
+    for (const GraphNode* node : graph.sorted_nodes) {
         ASSERT_FALSE(node->outputs.empty());
         output_names.push_back(node->outputs[0]);
     }

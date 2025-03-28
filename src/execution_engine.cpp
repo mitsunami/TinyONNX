@@ -1,12 +1,24 @@
 #include "execution_engine.h"
+#include <xnnpack.h>
 #include "operators.h"
 #include "onnx_utils.h"
-#include "graph_utils.h"
+#include "graph.h"
 #include "utils/timer.h"
 #include "onnx.pb.h"
 #include <iostream>
 
-ExecutionEngine::ExecutionEngine() {}
+ExecutionEngine::ExecutionEngine() : pthreadpool_(nullptr) {
+    xnn_status status = xnn_initialize(nullptr);
+    if (status != xnn_status_success) {
+        throw std::runtime_error("XNNPACK initialization failed");
+    }
+    pthreadpool_ = pthreadpool_create(0); // Use all hardware threads
+}
+
+ExecutionEngine::~ExecutionEngine() {
+    xnn_deinitialize();
+    if (pthreadpool_) pthreadpool_destroy(pthreadpool_);
+}
 
 void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input) {
     graph.tensors["input"] = input;
@@ -27,6 +39,7 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
             auto& in = graph.tensors[node->inputs[0]];
             auto& weights = graph.tensors[node->inputs[1]];
             auto& bias = graph.tensors[node->inputs[2]];
+            std::vector<int> kernel_shape = getIntListAttr(node, "kernel_shape");
             std::vector<int> strides = getIntListAttr(node, "strides");
             std::vector<int> pads = getIntListAttr(node, "pads");
             std::vector<int> dilations = getIntListAttr(node, "dilations");
@@ -35,8 +48,13 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
             if (pads.empty()) pads = {0, 0, 0, 0};  // top, left, bottom, right
             if (dilations.empty()) dilations = {1, 1};
             graph.tensors[node->outputs[0]] = operators_.conv2d(
-                in, weights, bias, strides, pads, dilations, groups
+                in, weights, bias, kernel_shape, strides, pads, dilations, groups, pthreadpool_
             );
+        }
+        else if (node->op_type == "Transpose") {
+            auto& in = graph.tensors[node->inputs[0]];
+            auto perm = getIntListAttr(node, "perm");
+            graph.tensors[node->outputs[0]] = operators_.transpose(in, perm);
         }
         else if (node->op_type == "MatMul") {
             auto& a = graph.tensors[node->inputs[0]];
@@ -98,7 +116,8 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
         }
         else if (node->op_type == "Flatten") {
             auto& in = graph.tensors[node->inputs[0]];
-            graph.tensors[node->outputs[0]] = operators_.flatten(in);
+            int axis = getIntAttr(node, "axis", 0);
+            graph.tensors[node->outputs[0]] = operators_.flatten(in, axis);
         }
         else {
             std::cerr << "Operator not supported yet: " << node->op_type << std::endl;

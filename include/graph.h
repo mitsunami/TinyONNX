@@ -12,8 +12,13 @@ struct GraphNode {
     std::vector<onnx::AttributeProto> attributes; 
 };
 
-struct ComputationGraph {
+class ComputationGraph {
+public:
     std::vector<GraphNode> nodes; // original order
     std::vector<const GraphNode*> sorted_nodes; // topologically sorted
     std::unordered_map<std::string, Tensor> tensors;
+
+    void topologicalSort();
+    void printNodes();
+    void printSortedNodes();
 };

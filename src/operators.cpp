@@ -1,34 +1,156 @@
 #include "operators.h"
+#include <xnnpack.h>
+#include <pthreadpool.h>
 #include <cmath>
 #include <cassert>
 #include <algorithm>
 #include "conv2d.cpp"
 
+Tensor Operators::transpose(const Tensor& input, const std::vector<int>& perm) {
+    std::cout << "TRANSPOSE: input: [" << input.shape().size() << "](" << input.shape()[0] << ", " << input.shape()[1] << ", " << input.shape()[2] << ", " << input.shape()[3] << ")";
+    std::vector<int> old_shape = input.shape();
+    if (perm.size() != old_shape.size())
+        throw std::runtime_error("Permutation size mismatch.");
+
+    std::vector<int> new_shape(old_shape.size());
+    for (size_t i = 0; i < perm.size(); ++i)
+        new_shape[i] = old_shape[perm[i]];
+
+    Tensor output(new_shape);
+    const std::vector<float>& in_data = input.data();
+    std::vector<float>& out_data = output.data();
+
+    // Compute input strides
+    std::vector<int> old_strides(old_shape.size(), 1);
+    for (int i = old_shape.size() - 2; i >= 0; --i) {
+        old_strides[i] = old_strides[i + 1] * old_shape[i + 1];
+    }
+
+    // Compute output strides
+    std::vector<int> new_strides(new_shape.size(), 1);
+    for (int i = new_shape.size() - 2; i >= 0; --i) {
+        new_strides[i] = new_strides[i + 1] * new_shape[i + 1];
+    }
+
+    // Transpose data correctly
+    for (size_t idx = 0; idx < in_data.size(); ++idx) {
+        int old_idx = idx;
+        std::vector<int> old_pos(old_shape.size());
+
+        // Find the coordinate in old shape
+        for (size_t i = 0; i < old_shape.size(); ++i) {
+            old_pos[i] = old_idx / old_strides[i];
+            old_idx %= old_strides[i];
+        }
+
+        // Permute the coordinate
+        std::vector<int> new_pos(new_shape.size());
+        for (size_t i = 0; i < perm.size(); ++i) {
+            new_pos[i] = old_pos[perm[i]];
+        }
+
+        // Compute new index
+        int new_idx = 0;
+        for (size_t i = 0; i < new_shape.size(); ++i) {
+            new_idx += new_pos[i] * new_strides[i];
+        }
+
+        out_data[new_idx] = in_data[idx];
+    }
+    std::cout << "         :output: [" << output.shape().size() << "](" << output.shape()[0] << ", " << output.shape()[1] << ", " << output.shape()[2] << ", " << output.shape()[3] << ")" << std::endl;
+
+    return output;
+}
+
 Tensor Operators::conv2d(const Tensor& input, const Tensor& weights, const Tensor& bias, 
-                         const std::vector<int>& strides, const std::vector<int>& pads, const std::vector<int>& dilations, int groups) {
-    assert(input.shape().size() == 4);   // [N, C, H, W]
-    assert(weights.shape().size() == 4); // [M, C/groups, kH, kW]
+                         const std::vector<int>& kernel_shape, const std::vector<int>& strides, const std::vector<int>& pads, const std::vector<int>& dilations, int groups, pthreadpool_t threadpool) {
+    assert(input.shape().size() == 4);   // [N, H, W, C]
+    assert(weights.shape().size() == 4); // [M, kH, kW, C/groups]
     assert(bias.shape().size() == 1);    // [M]
+    std::cout << "CONV2D: input: [" << input.shape().size() << "](" << input.shape()[0] << ", " << input.shape()[1] << ", " << input.shape()[2] << ", " << input.shape()[3] << ")";
 
-    const int KH = weights.shape()[2];
-    const int KW = weights.shape()[3];
+    const int N = input.shape()[0];
+    const int IH = input.shape()[1];
+    const int IW = input.shape()[2];
+    const int IC = input.shape()[3];
 
-    // Fast path: 1x1 conv (pointwise)
-    if (KH == 1 && KW == 1 &&
-        strides[0] == 1 && strides[1] == 1 &&
-        dilations[0] == 1 && dilations[1] == 1 &&
-        pads[0] == 0 && pads[1] == 0 &&
-        groups == 1) {
-        return conv2d_pointwise(input, weights, bias, strides, 0, 1);
+    const int OC = weights.shape()[0];
+    const int KH = weights.shape()[1];
+    const int KW = weights.shape()[2];
+
+    const int OH = (IH + 2 * pads[0] - KH) / strides[0] + 1;
+    const int OW = (IW + 2 * pads[1] - KW) / strides[1] + 1;
+
+    // input.print();
+    // weights.print();
+    Tensor output({N, OH, OW, OC});
+    // output.print();
+    xnn_operator_t conv_op = nullptr;
+    xnn_status status = xnn_create_convolution2d_nhwc_f32(
+        pads[0], pads[1], pads[2], pads[3], // top, right, bottom, left
+        kernel_shape[0], kernel_shape[1],
+        strides[0], strides[1],
+        dilations[0], dilations[1],
+        groups,
+        IC / groups, OC / groups,
+        IC, // input_channel_stride
+        OC, // output_channel_stride
+        weights.data().data(),
+        bias.data().data(),
+        -std::numeric_limits<float>::infinity(),
+        +std::numeric_limits<float>::infinity(),
+        0,
+        nullptr, // code_cache
+        nullptr, // weights_cache
+        &conv_op
+    );
+    if (status != xnn_status_success) {
+        std::cout << status << std::endl;
+        throw std::runtime_error("Failed to create XNNPACK convolution operator");
     }
 
-    // Fast path: depthwise conv (IC == OC == groups)
-    if (groups == input.shape()[1] && groups == weights.shape()[0]) {
-        return conv2d_depthwise(input, weights, bias, strides, pads, dilations);
+    size_t workspace_size = 0;
+    size_t workspace_alignment = 0;
+    status = xnn_reshape_convolution2d_nhwc_f32(
+        conv_op,
+        1, //batch_size
+        IH, IW,
+        &workspace_size, &workspace_alignment,
+        nullptr, // output_height_out
+        nullptr, // output_width_out
+        threadpool
+    );
+    if (status != xnn_status_success) {
+        throw std::runtime_error("Failed to reshape XNNPACK convolution operator");
     }
 
-    // Fallback to general
-    return conv2d_general(input, weights, bias, strides, pads, dilations, groups);
+    std::vector<char> workspace(workspace_size);
+    status = xnn_setup_convolution2d_nhwc_f32(
+        conv_op,
+        workspace.data(),
+        input.data().data(),
+        output.data().data()
+    );
+    if (status != xnn_status_success) {
+        std::cout << status << std::endl;
+        throw std::runtime_error("Failed to set up XNNPACK convolution operator");
+    }
+
+    status = xnn_run_operator(conv_op, threadpool);
+    if (status != xnn_status_success) {
+        throw std::runtime_error("Failed to run XNNPACK convolution operator");
+    }
+
+    status = xnn_delete_operator(conv_op);
+    if (status != xnn_status_success) {
+        throw std::runtime_error("Failed to delete XNNPACK convolution operator");
+    }
+
+    conv_op = nullptr;
+
+    std::cout << "      :output: [" << output.shape().size() << "](" << output.shape()[0] << ", " << output.shape()[1] << ", " << output.shape()[2] << ", " << output.shape()[3] << ")" << std::endl;
+
+    return output;
 }
 
 Tensor Operators::matmul(const Tensor& a, const Tensor& b) {
@@ -76,6 +198,7 @@ Tensor Operators::gemm(const Tensor& a, const Tensor& b, const Tensor& c, float 
 }
 
 Tensor Operators::gemm_transB(const Tensor& a, const Tensor& b, const Tensor& c, float alpha, float beta) {
+    std::cout << "GEMM_TRANSB A: (" << a.shape()[0] << ", " << a.shape()[1] << "), B: (" << b.shape()[0] << ", " << b.shape()[1] <<")" << std::endl;
     int M = a.shape()[0];
     int K = a.shape()[1];
     int N = b.shape()[0];  // B shape is [N, K], so B^T is [K, N]
@@ -179,12 +302,13 @@ Tensor Operators::batchNorm(const Tensor& input, const Tensor& scale, const Tens
 }
 
 Tensor Operators::globalAveragePool(const Tensor& input) {
-    assert(input.shape().size() == 4); // [batch, channels, height, width]
+    assert(input.shape().size() == 4); // [batch, height, width, channels]
+    std::cout << "GLOBALAVGPOOL: input: [" << input.shape().size() << "](" << input.shape()[0] << ", " << input.shape()[1] << ", " << input.shape()[2] << ", " << input.shape()[3] << ")" << std::endl;
 
     int batch = input.shape()[0];
-    int channels = input.shape()[1];
-    int height = input.shape()[2];
-    int width = input.shape()[3];
+    int height = input.shape()[1];
+    int width = input.shape()[2];
+    int channels = input.shape()[3];
 
     Tensor output({batch, channels, 1, 1});
 
@@ -203,6 +327,7 @@ Tensor Operators::globalAveragePool(const Tensor& input) {
         }
     }
 
+    std::cout << "      :output: [" << output.shape().size() << "](" << output.shape()[0] << ", " << output.shape()[1] << ", " << output.shape()[2] << ", " << output.shape()[3] << ")" << std::endl;
     return output;
 }
 
@@ -234,10 +359,15 @@ Tensor Operators::reshape(const Tensor& input, const std::vector<int>& new_shape
     return output;
 }
 
-Tensor Operators::flatten(const Tensor& input) {
+Tensor Operators::flatten(const Tensor& input, int axis) {
+    // TODO: support axis
     assert(input.shape().size() >= 2);
+    std::cout << "FLATTEN: input: [" << input.shape().size() << "](" << input.shape()[0] << ", " << input.shape()[1] << ", " << input.shape()[2] << ", " << input.shape()[3] << ")" << std::endl;
     int batch = input.shape()[0];
     int features = input.data().size() / batch;
 
-    return reshape(input, {batch, features});
+    Tensor output = reshape(input, {batch, features});
+    std::cout << "       : output: [" << output.shape().size() << "](" << output.shape()[0] << ", " << output.shape()[1] << ")" << std::endl;
+
+    return output;
 }
