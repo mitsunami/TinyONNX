@@ -1,6 +1,7 @@
 import numpy as np
 
-ref = np.load("test_data/reference_output.npy").flatten()
+#ref = np.load("test_data/reference_output.npy").flatten()
+ref = np.load("test_data/output_reference_nhwc.npy").flatten()
 tiny = np.loadtxt("tinyonnx_output.txt")
 
 abs_diff = np.abs(tiny - ref)

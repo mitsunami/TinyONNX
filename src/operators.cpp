@@ -6,8 +6,43 @@
 #include <algorithm>
 #include "conv2d.cpp"
 
+Tensor Operators::transpose(const Tensor& input, const std::vector<int>& perm) {
+    std::vector<int> old_shape = input.shape();
+    if (perm.size() != old_shape.size())
+        throw std::runtime_error("Permutation size mismatch.");
+
+    std::vector<int> new_shape(old_shape.size());
+    for (size_t i = 0; i < perm.size(); ++i)
+        new_shape[i] = old_shape[perm[i]];
+
+    Tensor output(new_shape);
+    const std::vector<float>& in_data = input.data();
+    std::vector<float>& out_data = output.data();
+
+    std::vector<int> in_stride(old_shape.size(), 1);
+    std::vector<int> out_stride(new_shape.size(), 1);
+
+    for (int i = old_shape.size() - 2; i >= 0; --i) {
+        in_stride[i] = in_stride[i + 1] * old_shape[i + 1];
+        out_stride[i] = out_stride[i + 1] * new_shape[i + 1];
+    }
+
+    for (size_t idx = 0; idx < in_data.size(); ++idx) {
+        int in_idx = idx;
+        int out_idx = 0;
+        for (size_t dim = 0; dim < old_shape.size(); ++dim) {
+            int position = in_idx / in_stride[dim];
+            in_idx %= in_stride[dim];
+            out_idx += position * out_stride[perm[dim]];
+        }
+        out_data[out_idx] = in_data[idx];
+    }
+
+    return output;
+}
+
 Tensor Operators::conv2d(const Tensor& input, const Tensor& weights, const Tensor& bias, 
-                         const std::vector<int> kernel_shape, const std::vector<int>& strides, const std::vector<int>& pads, const std::vector<int>& dilations, int groups, pthreadpool_t threadpool) {
+                         const std::vector<int>& kernel_shape, const std::vector<int>& strides, const std::vector<int>& pads, const std::vector<int>& dilations, int groups, pthreadpool_t threadpool) {
     assert(input.shape().size() == 4);   // [N, H, W, C]
     assert(weights.shape().size() == 4); // [M, kH, kW, C/groups]
     assert(bias.shape().size() == 1);    // [M]

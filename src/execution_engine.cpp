@@ -51,6 +51,11 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
                 in, weights, bias, kernel_shape, strides, pads, dilations, groups, pthreadpool_
             );
         }
+        else if (node->op_type == "Transpose") {
+            auto& in = graph.tensors[node->inputs[0]];
+            auto perm = getIntListAttr(node, "perm");
+            graph.tensors[node->outputs[0]] = operators_.transpose(in, perm);
+        }
         else if (node->op_type == "MatMul") {
             auto& a = graph.tensors[node->inputs[0]];
             auto& b = graph.tensors[node->inputs[1]];

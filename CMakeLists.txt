@@ -53,7 +53,7 @@ add_library(TinyONNX_lib STATIC
     src/operators.cpp
     src/conv2d.cpp
     src/onnx_utils.cpp
-    src/graph_utils.cpp
+    src/graph.cpp
 )
 target_include_directories(TinyONNX_lib PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 include_directories(
