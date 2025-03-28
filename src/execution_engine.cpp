@@ -2,7 +2,7 @@
 #include <xnnpack.h>
 #include "operators.h"
 #include "onnx_utils.h"
-#include "graph_utils.h"
+#include "graph.h"
 #include "utils/timer.h"
 #include "onnx.pb.h"
 #include <iostream>
@@ -116,7 +116,8 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
         }
         else if (node->op_type == "Flatten") {
             auto& in = graph.tensors[node->inputs[0]];
-            graph.tensors[node->outputs[0]] = operators_.flatten(in);
+            int axis = getIntAttr(node, "axis", 0);
+            graph.tensors[node->outputs[0]] = operators_.flatten(in, axis);
         }
         else {
             std::cerr << "Operator not supported yet: " << node->op_type << std::endl;

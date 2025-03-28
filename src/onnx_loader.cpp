@@ -75,50 +75,42 @@ ComputationGraph ONNXModel::parseGraph() {
         node.inputs.assign(node_proto.input().begin(), node_proto.input().end());
         node.outputs.assign(node_proto.output().begin(), node_proto.output().end());
         node.attributes.assign(node_proto.attribute().begin(), node_proto.attribute().end());
-        // for (const auto& attr : node_proto.attribute()) {
-        //     node.attributes.push_back(attr);
+        for(auto& input : node.inputs) {
+            if(input == input_name)
+                input += "_nhwc";
+        }
+        // TODO: Output transpose is needed for unet type net?
+        // for (auto& output : node.outputs) {
+        //     if(output == output_name)
+        //         output += "_nhwc";
         // }
 
-        if(requires_channel_last){
-            if(node.op_type == "Conv") {
-                // Transpose weights for NHWC compatibility
-                graph.tensors[node.inputs[1]].reorderOIHWtoOHWI();
-                node.inputs[0] += "_nhwc";
-                node.outputs[0] += "_nhwc";
-            } else {
-                // Update non-Conv nodes to handle NHWC if needed
-                for(auto& input : node.inputs) {
-                    if(input == input_name)
-                        input += "_nhwc"; // explicitly update first node input
-                    else if (graph.tensors.find(input + "_nhwc") != graph.tensors.end())
-                        input += "_nhwc";
-                }
-                for (auto& output : node.outputs) {
-                    if(output == output_name)
-                        output += "_nhwc";
-                }
-            }
+        if(requires_channel_last && node.op_type == "Conv") {
+            // Transpose weights for NHWC compatibility
+            graph.tensors[node.inputs[1]].reorderOIHWtoOHWI();
         }
 
         graph.nodes.push_back(node);
+        graph.printNodes();
     }
 
-    if(insert_global_transpose){
-        // Insert global output transpose (NHWC -> NCHW)
-        GraphNode postTranspose;
-        postTranspose.op_type = "Transpose";
-        postTranspose.inputs = {output_name + "_nhwc"};
-        postTranspose.outputs = {output_name};
-        onnx::AttributeProto perm_attr_out;
-        perm_attr_out.set_name("perm");
-        perm_attr_out.set_type(onnx::AttributeProto::INTS);
-        perm_attr_out.add_ints(0);
-        perm_attr_out.add_ints(3);
-        perm_attr_out.add_ints(1);
-        perm_attr_out.add_ints(2);
-        postTranspose.attributes.push_back(perm_attr_out);
-        graph.nodes.push_back(postTranspose);
-    }
+    // TODO: Output transpose is needed for unet type net?
+    // if(insert_global_transpose){
+    //     // Insert global output transpose (NHWC -> NCHW)
+    //     GraphNode postTranspose;
+    //     postTranspose.op_type = "Transpose";
+    //     postTranspose.inputs = {output_name + "_nhwc"};
+    //     postTranspose.outputs = {output_name};
+    //     onnx::AttributeProto perm_attr_out;
+    //     perm_attr_out.set_name("perm");
+    //     perm_attr_out.set_type(onnx::AttributeProto::INTS);
+    //     perm_attr_out.add_ints(0);
+    //     perm_attr_out.add_ints(3);
+    //     perm_attr_out.add_ints(1);
+    //     perm_attr_out.add_ints(2);
+    //     postTranspose.attributes.push_back(perm_attr_out);
+    //     graph.nodes.push_back(postTranspose);
+    // }
 
     graph.printNodes();
     graph.topologicalSort();

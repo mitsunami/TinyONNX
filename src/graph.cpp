@@ -1,4 +1,4 @@
-#include "graph_utils.h"
+#include "graph.h"
 #include <unordered_map>
 #include <unordered_set>
 #include <queue>
@@ -52,6 +52,7 @@ void ComputationGraph::topologicalSort() {
 
 
     if (sorted_nodes.size() != nodes.size()) {
+        std::cout << "sorted size: " << sorted_nodes.size() << ", org size: " << nodes.size () << std::endl;
         throw std::runtime_error("Cycle detected or missing inputs in graph");
     }
 
@@ -61,8 +62,14 @@ void ComputationGraph::printNodes() {
     std::cout << "🔁 Graph Order:\n";
     for (const auto node : nodes) {
         std::cout << "\033[1;32m- " << node.op_type << "\033[0m";
-        if (!node.outputs.empty()) {
+        if (!node.inputs.empty() && !node.outputs.empty()) {
             std::cout << " : [" << node.inputs[0] << "] → [" << node.outputs[0] << "]";
+        }
+        else if (!node.outputs.empty()) {
+            std::cout << " :  → [" << node.outputs[0] << "]";
+        }
+        else if (!node.inputs.empty()) {
+            std::cout << " : [" << node.inputs[0] << "] → ";
         }
         std::cout << "\n";
     }
@@ -73,8 +80,14 @@ void ComputationGraph::printSortedNodes() {
     std::cout << "🔁 Topological Node Execution Order:\n";
     for (const auto* node : sorted_nodes) {
         std::cout << "\033[1;32m- " << node->op_type << "\033[0m";
-        if (!node->outputs.empty()) {
+        if (!node->inputs.empty() && !node->outputs.empty()) {
             std::cout << " : [" << node->inputs[0] << "] → [" << node->outputs[0] << "]";
+        }
+        else if (!node->outputs.empty()) {
+            std::cout << " :  → [" << node->outputs[0] << "]";
+        }
+        else if (!node->inputs.empty()) {
+            std::cout << " : [" << node->inputs[0] << "] → ";
         }
         std::cout << "\n";
     }
