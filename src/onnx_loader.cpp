@@ -75,23 +75,23 @@ ComputationGraph ONNXModel::parseGraph() {
         node.inputs.assign(node_proto.input().begin(), node_proto.input().end());
         node.outputs.assign(node_proto.output().begin(), node_proto.output().end());
         node.attributes.assign(node_proto.attribute().begin(), node_proto.attribute().end());
-        for(auto& input : node.inputs) {
-            if(input == input_name)
-                input += "_nhwc";
-        }
-        // TODO: Output transpose is needed for unet type net?
-        // for (auto& output : node.outputs) {
-        //     if(output == output_name)
-        //         output += "_nhwc";
-        // }
 
-        if(requires_channel_last && node.op_type == "Conv") {
-            // Transpose weights for NHWC compatibility
-            graph.tensors[node.inputs[1]].reorderOIHWtoOHWI();
-        }
-
+        if(requires_channel_last){
+            for(auto& input : node.inputs) {
+                if(input == input_name)
+                    input += "_nhwc";
+            }
+            // TODO: Output transpose is needed for unet type net?
+            // for (auto& output : node.outputs) {
+            //     if(output == output_name)
+            //         output += "_nhwc";
+            // }
+            if(node.op_type == "Conv") {
+                // Transpose weights for NHWC compatibility
+                graph.tensors[node.inputs[1]].reorderOIHWtoOHWI();
+            }    
+        } 
         graph.nodes.push_back(node);
-        graph.printNodes();
     }
 
     // TODO: Output transpose is needed for unet type net?

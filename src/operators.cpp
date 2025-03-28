@@ -20,23 +20,42 @@ Tensor Operators::transpose(const Tensor& input, const std::vector<int>& perm) {
     const std::vector<float>& in_data = input.data();
     std::vector<float>& out_data = output.data();
 
-    std::vector<int> in_stride(old_shape.size(), 1);
-    std::vector<int> out_stride(new_shape.size(), 1);
-
+    // Compute input strides
+    std::vector<int> old_strides(old_shape.size(), 1);
     for (int i = old_shape.size() - 2; i >= 0; --i) {
-        in_stride[i] = in_stride[i + 1] * old_shape[i + 1];
-        out_stride[i] = out_stride[i + 1] * new_shape[i + 1];
+        old_strides[i] = old_strides[i + 1] * old_shape[i + 1];
     }
 
+    // Compute output strides
+    std::vector<int> new_strides(new_shape.size(), 1);
+    for (int i = new_shape.size() - 2; i >= 0; --i) {
+        new_strides[i] = new_strides[i + 1] * new_shape[i + 1];
+    }
+
+    // Transpose data correctly
     for (size_t idx = 0; idx < in_data.size(); ++idx) {
-        int in_idx = idx;
-        int out_idx = 0;
-        for (size_t dim = 0; dim < old_shape.size(); ++dim) {
-            int position = in_idx / in_stride[dim];
-            in_idx %= in_stride[dim];
-            out_idx += position * out_stride[perm[dim]];
+        int old_idx = idx;
+        std::vector<int> old_pos(old_shape.size());
+
+        // Find the coordinate in old shape
+        for (size_t i = 0; i < old_shape.size(); ++i) {
+            old_pos[i] = old_idx / old_strides[i];
+            old_idx %= old_strides[i];
         }
-        out_data[out_idx] = in_data[idx];
+
+        // Permute the coordinate
+        std::vector<int> new_pos(new_shape.size());
+        for (size_t i = 0; i < perm.size(); ++i) {
+            new_pos[i] = old_pos[perm[i]];
+        }
+
+        // Compute new index
+        int new_idx = 0;
+        for (size_t i = 0; i < new_shape.size(); ++i) {
+            new_idx += new_pos[i] * new_strides[i];
+        }
+
+        out_data[new_idx] = in_data[idx];
     }
     std::cout << "         :output: [" << output.shape().size() << "](" << output.shape()[0] << ", " << output.shape()[1] << ", " << output.shape()[2] << ", " << output.shape()[3] << ")" << std::endl;
 

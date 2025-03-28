@@ -114,6 +114,7 @@ add_executable(TinyONNX_tests
     tests/test_batchnorm.cpp
     tests/test_global_avgpool.cpp
     tests/test_reshape.cpp
+    tests/test_transpose.cpp
     tests/test_toposort.cpp
 )
 
