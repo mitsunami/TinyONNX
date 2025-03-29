@@ -57,6 +57,10 @@ TEST(Conv2DTest, Stride2Padding1) {
     weights.fillRandom();
     bias.fillRandom();
 
+    xnn_status status = xnn_initialize(nullptr);
+    if (status != xnn_status_success) {
+        throw std::runtime_error("XNNPACK initialization failed");
+    }
     pthreadpool_t pthreadpool_ = pthreadpool_create(0);
     Operators ops;
     Tensor output = ops.conv2d(
@@ -81,6 +85,10 @@ TEST(Conv2DTest, DepthwiseGroupConv) {
     weights.fillRandom();
     bias.fillRandom();
 
+    xnn_status status = xnn_initialize(nullptr);
+    if (status != xnn_status_success) {
+        throw std::runtime_error("XNNPACK initialization failed");
+    }
     pthreadpool_t pthreadpool_ = pthreadpool_create(0);
     Operators ops;
     Tensor output = ops.conv2d(
