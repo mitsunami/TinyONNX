@@ -310,20 +310,20 @@ Tensor Operators::globalAveragePool(const Tensor& input) {
     int width = input.shape()[2];
     int channels = input.shape()[3];
 
-    Tensor output({batch, channels, 1, 1});
+    Tensor output({batch, 1, 1, channels});
+    int spatial_size = height * width;
 
     for (int b = 0; b < batch; ++b) {
         for (int c = 0; c < channels; ++c) {
             float sum = 0.0f;
             for (int h = 0; h < height; ++h) {
                 for (int w = 0; w < width; ++w) {
-                    int idx = ((b * channels + c) * height + h) * width + w;
+                    int idx = ((b * height + h) * width + w) * channels + c;
                     sum += input.data()[idx];
                 }
             }
-            float avg = sum / (height * width);
             int out_idx = (b * channels + c);
-            output.data()[out_idx] = avg;
+            output.data()[out_idx] = sum / spatial_size;
         }
     }
 
