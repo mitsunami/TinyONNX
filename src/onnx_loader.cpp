@@ -1,6 +1,6 @@
 #include "onnx_loader.h"
 #include "graph.h"
-//#include "graph_utils.h"
+#include "utils/logger.h"
 #include <iostream>
 #include <fstream>
 
@@ -9,16 +9,16 @@ ONNXModel::ONNXModel() {}
 bool ONNXModel::load(const std::string& model_path) {
     std::ifstream input(model_path, std::ios::binary);
     if (!input) {
-        std::cerr << "Error: Unable to open model file." << std::endl;
+        Logger::instance().error("Error: Unable to open model file.");
         return false;
     }
 
     if (!model_proto_.ParseFromIstream(&input)) {
-        std::cerr << "Error: Failed to parse ONNX model." << std::endl;
+        Logger::instance().error("Error: Failed to parse ONNX model.");
         return false;
     }
 
-    std::cout << "ONNX Model successfully loaded." << std::endl;
+    Logger::instance().info("ONNX Model successfully loaded.");
     return true;
 }
 
@@ -112,9 +112,9 @@ ComputationGraph ONNXModel::parseGraph() {
     //     graph.nodes.push_back(postTranspose);
     // }
 
-    graph.printNodes();
+    //graph.printNodes();
     graph.topologicalSort();
-    graph.printSortedNodes();
+    //graph.printSortedNodes();
 
     return graph;
 }

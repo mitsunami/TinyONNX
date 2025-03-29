@@ -1,13 +1,16 @@
 #include "operators.h"
+#include "utils/logger.h"
 #include <xnnpack.h>
 #include <pthreadpool.h>
 #include <cmath>
 #include <cassert>
 #include <algorithm>
+#include <sstream>
 #include "conv2d.cpp"
 
 Tensor Operators::transpose(const Tensor& input, const std::vector<int>& perm) {
-    std::cout << "TRANSPOSE: input: [" << input.shape().size() << "](" << input.shape()[0] << ", " << input.shape()[1] << ", " << input.shape()[2] << ", " << input.shape()[3] << ")";
+    std::ostringstream shape_log;
+    shape_log << "TRANSPOSE: input: [" << input.shape().size() << "](" << input.shape()[0] << ", " << input.shape()[1] << ", " << input.shape()[2] << ", " << input.shape()[3] << ")";
     std::vector<int> old_shape = input.shape();
     if (perm.size() != old_shape.size())
         throw std::runtime_error("Permutation size mismatch.");
@@ -57,8 +60,8 @@ Tensor Operators::transpose(const Tensor& input, const std::vector<int>& perm) {
 
         out_data[new_idx] = in_data[idx];
     }
-    std::cout << "         :output: [" << output.shape().size() << "](" << output.shape()[0] << ", " << output.shape()[1] << ", " << output.shape()[2] << ", " << output.shape()[3] << ")" << std::endl;
-
+    shape_log << "         :output: [" << output.shape().size() << "](" << output.shape()[0] << ", " << output.shape()[1] << ", " << output.shape()[2] << ", " << output.shape()[3] << ")";
+    Logger::instance().debug(shape_log.str());
     return output;
 }
 
@@ -67,7 +70,8 @@ Tensor Operators::conv2d(const Tensor& input, const Tensor& weights, const Tenso
     assert(input.shape().size() == 4);   // [N, H, W, C]
     assert(weights.shape().size() == 4); // [M, kH, kW, C/groups]
     assert(bias.shape().size() == 1);    // [M]
-    std::cout << "CONV2D: input: [" << input.shape().size() << "](" << input.shape()[0] << ", " << input.shape()[1] << ", " << input.shape()[2] << ", " << input.shape()[3] << ")";
+    std::ostringstream shape_log;
+    shape_log << "CONV2D: input: [" << input.shape().size() << "](" << input.shape()[0] << ", " << input.shape()[1] << ", " << input.shape()[2] << ", " << input.shape()[3] << ")";
 
     const int N = input.shape()[0];
     const int IH = input.shape()[1];
@@ -81,10 +85,8 @@ Tensor Operators::conv2d(const Tensor& input, const Tensor& weights, const Tenso
     const int OH = (IH + 2 * pads[0] - KH) / strides[0] + 1;
     const int OW = (IW + 2 * pads[1] - KW) / strides[1] + 1;
 
-    // input.print();
-    // weights.print();
     Tensor output({N, OH, OW, OC});
-    // output.print();
+
     xnn_operator_t conv_op = nullptr;
     xnn_status status = xnn_create_convolution2d_nhwc_f32(
         pads[0], pads[1], pads[2], pads[3], // top, right, bottom, left
@@ -148,7 +150,8 @@ Tensor Operators::conv2d(const Tensor& input, const Tensor& weights, const Tenso
 
     conv_op = nullptr;
 
-    std::cout << "      :output: [" << output.shape().size() << "](" << output.shape()[0] << ", " << output.shape()[1] << ", " << output.shape()[2] << ", " << output.shape()[3] << ")" << std::endl;
+    shape_log << "      :output: [" << output.shape().size() << "](" << output.shape()[0] << ", " << output.shape()[1] << ", " << output.shape()[2] << ", " << output.shape()[3] << ")";
+    Logger::instance().debug(shape_log.str());
 
     return output;
 }
@@ -198,7 +201,8 @@ Tensor Operators::gemm(const Tensor& a, const Tensor& b, const Tensor& c, float 
 }
 
 Tensor Operators::gemm_transB(const Tensor& a, const Tensor& b, const Tensor& c, float alpha, float beta) {
-    std::cout << "GEMM_TRANSB A: (" << a.shape()[0] << ", " << a.shape()[1] << "), B: (" << b.shape()[0] << ", " << b.shape()[1] <<")" << std::endl;
+    std::ostringstream shape_log;
+    shape_log << "GEMM_TRANSB A: (" << a.shape()[0] << ", " << a.shape()[1] << "), B: (" << b.shape()[0] << ", " << b.shape()[1] <<")";
     int M = a.shape()[0];
     int K = a.shape()[1];
     int N = b.shape()[0];  // B shape is [N, K], so B^T is [K, N]
@@ -217,6 +221,7 @@ Tensor Operators::gemm_transB(const Tensor& a, const Tensor& b, const Tensor& c,
             result.data()[m * N + n] = alpha * sum + beta * c.data()[n];
         }
     }
+    Logger::instance().debug(shape_log.str());
     return result;
 }
 
@@ -303,7 +308,8 @@ Tensor Operators::batchNorm(const Tensor& input, const Tensor& scale, const Tens
 
 Tensor Operators::globalAveragePool(const Tensor& input) {
     assert(input.shape().size() == 4); // [batch, height, width, channels]
-    std::cout << "GLOBALAVGPOOL: input: [" << input.shape().size() << "](" << input.shape()[0] << ", " << input.shape()[1] << ", " << input.shape()[2] << ", " << input.shape()[3] << ")" << std::endl;
+    std::ostringstream shape_log;
+    shape_log << "GLOBALAVGPOOL: input: [" << input.shape().size() << "](" << input.shape()[0] << ", " << input.shape()[1] << ", " << input.shape()[2] << ", " << input.shape()[3] << ")";
 
     int batch = input.shape()[0];
     int height = input.shape()[1];
@@ -327,7 +333,8 @@ Tensor Operators::globalAveragePool(const Tensor& input) {
         }
     }
 
-    std::cout << "      :output: [" << output.shape().size() << "](" << output.shape()[0] << ", " << output.shape()[1] << ", " << output.shape()[2] << ", " << output.shape()[3] << ")" << std::endl;
+    shape_log << "      :output: [" << output.shape().size() << "](" << output.shape()[0] << ", " << output.shape()[1] << ", " << output.shape()[2] << ", " << output.shape()[3] << ")";
+    Logger::instance().debug(shape_log.str());
     return output;
 }
 
@@ -362,12 +369,14 @@ Tensor Operators::reshape(const Tensor& input, const std::vector<int>& new_shape
 Tensor Operators::flatten(const Tensor& input, int axis) {
     // TODO: support axis
     assert(input.shape().size() >= 2);
-    std::cout << "FLATTEN: input: [" << input.shape().size() << "](" << input.shape()[0] << ", " << input.shape()[1] << ", " << input.shape()[2] << ", " << input.shape()[3] << ")" << std::endl;
+    std::ostringstream shape_log;
+    shape_log << "FLATTEN: input: [" << input.shape().size() << "](" << input.shape()[0] << ", " << input.shape()[1] << ", " << input.shape()[2] << ", " << input.shape()[3] << ")";
     int batch = input.shape()[0];
     int features = input.data().size() / batch;
 
     Tensor output = reshape(input, {batch, features});
-    std::cout << "       : output: [" << output.shape().size() << "](" << output.shape()[0] << ", " << output.shape()[1] << ")" << std::endl;
+    shape_log << "       : output: [" << output.shape().size() << "](" << output.shape()[0] << ", " << output.shape()[1] << ")";
+    Logger::instance().debug(shape_log.str());
 
     return output;
 }

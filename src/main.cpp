@@ -4,6 +4,7 @@
 #include "tensor.h"
 #include "utils/timer.h"
 #include "utils/meminfo.h"
+#include "utils/logger.h"
 #include <fstream>
 
 Tensor loadNumpyInput(const std::string& filename) {
@@ -18,21 +19,43 @@ Tensor loadNumpyInput(const std::string& filename) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 3) {
-        std::cerr << "Usage: " << argv[0] << " <onnx_model> <input_tensor.npy>" << std::endl;
-        return 1;
+    std::vector<std::string> args(argv + 1, argv + argc);
+
+    // Check for --debug flag
+    bool debug_enabled = false;
+    std::vector<std::string> positional_args;
+
+    for (const auto& arg : args) {
+        if (arg == "--debug") {
+            debug_enabled = true;
+        } else {
+            positional_args.push_back(arg);
+        }
     }
 
-    std::string model_path = argv[1];
+    // Set logging level
+    Logger::instance().setLevel(debug_enabled ? LOG_LEVEL_DEBUG : LOG_LEVEL_INFO);
+    Logger::instance().debug("Debugging is enabled");
+    
+    // Expect exactly 2 positional arguments: model and input file
+    if (positional_args.size() != 2) {
+        Logger::instance().error("Usage: <program> [--debug] <onnx_model> <input_tensor.npy>");
+        return 1;
+    }
+    
+    std::string model_path = positional_args[0];
+    std::string input_path = positional_args[1];
+
+    Logger::instance().info("Program started");
 
     ONNXModel model;
     if (!model.load(model_path)) {
-        std::cerr << "Failed to load ONNX model!" << std::endl;
+        Logger::instance().error("Error: Unable to load ONNX model.");
         return 1;
     }
 
     ComputationGraph graph = model.parseGraph();
-    Tensor input = loadNumpyInput(argv[2]);
+    Tensor input = loadNumpyInput(input_path);
 
     Timer total_timer("Total Graph Execution");
     ExecutionEngine engine;

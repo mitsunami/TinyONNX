@@ -4,6 +4,7 @@
 #include "onnx_utils.h"
 #include "graph.h"
 #include "utils/timer.h"
+#include "utils/logger.h"
 #include "onnx.pb.h"
 #include <iostream>
 
