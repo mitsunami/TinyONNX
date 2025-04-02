@@ -109,6 +109,20 @@ void ExecutionEngine::executeGraph(ComputationGraph& graph, const Tensor& input)
             auto& in = graph.tensors[node->inputs[0]];
             graph.tensors[node->outputs[0]] = operators_.globalAveragePool(in);
         }
+        else if (node->op_type == "MaxPool") {
+            auto& in = graph.tensors[node->inputs[0]];
+            int ceil_mode = getIntAttr(node, "ceil_mode", 0);
+            std::vector<int> dilations = getIntListAttr(node, "dilations");
+            std::vector<int> kernel_shape = getIntListAttr(node, "kernel_shape");
+            std::vector<int> pads = getIntListAttr(node, "pads");
+            std::vector<int> strides = getIntListAttr(node, "strides");
+            if (strides.empty()) strides = {1, 1};
+            if (pads.empty()) pads = {0, 0, 0, 0};  // top, left, bottom, right
+            if (dilations.empty()) dilations = {1, 1};
+            graph.tensors[node->outputs[0]] = operators_.maxPool(
+                in, ceil_mode, dilations, kernel_shape, pads, strides, pthreadpool_
+            );
+        }
         else if (node->op_type == "Reshape") {
             auto& in = graph.tensors[node->inputs[0]];
             auto& shape_tensor = graph.tensors[node->inputs[1]];

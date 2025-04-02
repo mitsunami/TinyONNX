@@ -12,22 +12,22 @@
 - [ ] Fused ops (Conv+BN+ReLU)
 
 ## 🚀 Performance Optimization
-- [ ] SIMD optimization
-- [ ] Threading support
+- [x] SIMD optimization (use XNNPACK)
+- [x] Threading support
 - [ ] Micro-benchmark runner
 - [ ] Memory reuse
 - [ ] Quantized operator support
 
 ## 📦 Deployment & Integration
-- [ ] Raspberry Pi build
+- [x] Raspberry Pi build
 - [ ] Docker image
 - [ ] CLI tool
 
 ## ✅ Validation & Testing
 - [x] GitHub Actions: Build and unit test
 - [x] GitHub Actions: Validate MobileNet output
-- [ ] Add validation for other ONNX models
-- [ ] Add numeric tolerance tracking in CI
+- [x] Add validation for other ONNX models
+- [x] Add numeric tolerance tracking in CI
 
 ## 📚 Docs & Dev
 - [ ] Developer guide (README.md)
