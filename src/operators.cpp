@@ -338,6 +338,79 @@ Tensor Operators::globalAveragePool(const Tensor& input) {
     return output;
 }
 
+Tensor Operators::maxPool(const Tensor& input, int ceil_mode, const std::vector<int>& dilations, const std::vector<int>& kernel_shape, const std::vector<int>& pads, const std::vector<int>& strides, pthreadpool_t threadpool) {
+    assert(input.shape().size() == 4);   // [N, H, W, C]
+    std::ostringstream shape_log;
+    shape_log << "MAXPOOL: input: [" << input.shape().size() << "](" << input.shape()[0] << ", " << input.shape()[1] << ", " << input.shape()[2] << ", " << input.shape()[3] << ")";
+
+    const int N = input.shape()[0];
+    const int H = input.shape()[1];
+    const int W = input.shape()[2];
+    const int C = input.shape()[3];
+
+    int out_h = (H + pads[0] + pads[2] - kernel_shape[0]) / strides[0] + 1;
+    int out_w = (W + pads[1] + pads[3] - kernel_shape[1]) / strides[1] + 1;
+
+    Tensor output({N, out_h, out_w, C});
+
+    xnn_operator_t maxpool_op = nullptr;
+    xnn_status status = xnn_create_max_pooling2d_nhwc_f32(
+        pads[0], pads[1], pads[2], pads[3], // top, right, bottom, left
+        kernel_shape[0], kernel_shape[1],
+        strides[0], strides[1],
+        dilations[0], dilations[1],
+        -std::numeric_limits<float>::infinity(),
+        +std::numeric_limits<float>::infinity(),
+        0,
+        &maxpool_op
+    );
+    if (status != xnn_status_success) {
+        std::cout << status << std::endl;
+        throw std::runtime_error("Failed to create XNNPACK max pooling operator");
+    }
+
+    size_t output_height, output_width;
+    status = xnn_reshape_max_pooling2d_nhwc_f32(
+        maxpool_op,
+        1, //batch_size
+        H, W, C,
+        C, C,
+        &output_height, &output_width,
+        threadpool
+    );
+    if (status != xnn_status_success) {
+        std::cout << status << std::endl;
+        throw std::runtime_error("Failed to reshape XNNPACK max pooling operator");
+    }
+
+    status = xnn_setup_max_pooling2d_nhwc_f32(
+        maxpool_op,
+        input.data().data(),
+        output.data().data()
+    );
+    if (status != xnn_status_success) {
+        std::cout << status << std::endl;
+        throw std::runtime_error("Failed to set up XNNPACK max pooling operator");
+    }
+
+    status = xnn_run_operator(maxpool_op, threadpool);
+    if (status != xnn_status_success) {
+        throw std::runtime_error("Failed to run XNNPACK max pooling operator");
+    }
+
+    status = xnn_delete_operator(maxpool_op);
+    if (status != xnn_status_success) {
+        throw std::runtime_error("Failed to delete XNNPACK max pooling operator");
+    }
+
+    maxpool_op = nullptr;
+
+    shape_log << "       :output: [" << output.shape().size() << "](" << output.shape()[0] << ", " << output.shape()[1] << ", " << output.shape()[2] << ", " << output.shape()[3] << ")";
+    Logger::instance().debug(shape_log.str());
+
+    return output;
+}
+
 Tensor Operators::reshape(const Tensor& input, const std::vector<int>& new_shape) {
     size_t input_size = input.data().size();
 

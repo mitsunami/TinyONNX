@@ -15,6 +15,7 @@ public:
     Tensor softmax(const Tensor& input);
     Tensor batchNorm(const Tensor& input, const Tensor& scale, const Tensor& bias, const Tensor& mean, const Tensor& var, float epsilon);
     Tensor globalAveragePool(const Tensor& input);
+    Tensor maxPool(const Tensor& input, int ceil_mode, const std::vector<int>& dilations, const std::vector<int>& kernel_shape, const std::vector<int>& pads, const std::vector<int>& strides, pthreadpool_t pthreadpool);
     Tensor reshape(const Tensor& input, const std::vector<int>& new_shape);
     Tensor flatten(const Tensor& input, int axis);
 };
